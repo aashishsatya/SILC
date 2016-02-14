@@ -1,12 +1,22 @@
 %{
 	#include <stdio.h>
-	#include <stdlib.h>	
+	#include <stdlib.h>
+	#include "y.tab.h"
 %}
 
 %%
 
-[a-z] { yylval.character = yytext[0]; return ID;}
-[0-9]+  { yylval.integer = atoi(yytext); return NUM;}
+[a-z] {
+	char variable_name = yytext[0];
+	yylval.tnode_ptr = (struct Tnode *) TreeCreate(-1, ID, -1, &variable_name);
+	//printf("Saw value %d", value);
+	//yylval.tnode_ptr = value;
+	return ID;
+}
+[0-9]+  {
+	yylval.tnode_ptr = TreeCreate(-1, NUM, atoi(yytext));
+	return NUM;
+}
 
 "read"   { return READ;}
 "write" {return WRITE;}
@@ -14,7 +24,7 @@
 "while" {return WHILE;}
 "do" {return DO;}
 "endwhile" {return ENDWHILE;}
-"endif" {return ENDIF};
+"endif" {return ENDIF;}
 
 "+"	{return PLUS;}
 "*"	{return MUL;}

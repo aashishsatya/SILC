@@ -45,38 +45,57 @@ extern int yydebug;
 # define YYTOKENTYPE
   enum yytokentype
   {
-    ID = 258,
-    NUM = 259,
-    PLUS = 260,
-    MUL = 261,
-    END = 262,
-    ASGN = 263,
-    READ = 264,
-    WRITE = 265
+    PLUS = 258,
+    MUL = 259,
+    END = 260,
+    ASGN = 261,
+    READ = 262,
+    WRITE = 263,
+    LT = 264,
+    GT = 265,
+    EQ = 266,
+    IF = 267,
+    WHILE = 268,
+    DO = 269,
+    ENDWHILE = 270,
+    ENDIF = 271,
+    PARENS = 272,
+    THEN = 273,
+    ID = 274,
+    NUM = 275
   };
 #endif
 /* Tokens.  */
-#define ID 258
-#define NUM 259
-#define PLUS 260
-#define MUL 261
-#define END 262
-#define ASGN 263
-#define READ 264
-#define WRITE 265
+#define PLUS 258
+#define MUL 259
+#define END 260
+#define ASGN 261
+#define READ 262
+#define WRITE 263
+#define LT 264
+#define GT 265
+#define EQ 266
+#define IF 267
+#define WHILE 268
+#define DO 269
+#define ENDWHILE 270
+#define ENDIF 271
+#define PARENS 272
+#define THEN 273
+#define ID 274
+#define NUM 275
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 9 "expl.y" /* yacc.c:1909  */
+#line 12 "expl.y" /* yacc.c:1909  */
 
-	char character;
-	int integer;
+	int int_val;
+	struct  Tnode *tnode_ptr;
 
-
-#line 80 "y.tab.h" /* yacc.c:1909  */
+#line 99 "y.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

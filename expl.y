@@ -2,33 +2,48 @@
 	#include <stdio.h>
 	#include <stdlib.h>
 
-	#define YYSTYPE tnode *
-
 	#include "expl.c"
-	#include "expl.h"
+
+	int yylex(void);
 
   int *var[26];
 %}
 
-%union
-{
-	char character;
-	int integer;
+%union {
+	int int_val;
+	struct  Tnode *tnode_ptr;
+}
 
-};
-
-%token <character> ID
-%token <integer> NUM
-%type <integer> expr
-
-%token PLUS MUL END ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF
+%token PLUS MUL END ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM
+%type <tnode_ptr> expr;
+%type <tnode_ptr> stmt;
+%type <tnode_ptr> NUM;
+%type <tnode_ptr> start;
+%type <tnode_ptr> slist;
+%type <tnode_ptr> ID;
+%type <tnode_ptr> PLUS;
+%type <tnode_ptr> MUL;
+%type <tnode_ptr> END;
+%type <tnode_ptr> ASGN;
+%type <tnode_ptr> READ;
+%type <tnode_ptr> WRITE;
+%type <tnode_ptr> LT;
+%type <tnode_ptr> GT;
+%type <tnode_ptr> EQ;
+%type <tnode_ptr> IF;
+%type <tnode_ptr> WHILE;
+%type <tnode_ptr> DO;
+%type <tnode_ptr> ENDWHILE;
+%type <tnode_ptr> ENDIF;
+%type <tnode_ptr> PARENS;
+%type <tnode_ptr> THEN;
 %left PLUS
 %left MUL
 %nonassoc LT GT EQ
 
 %%
 
-start: slist END	{exit(1);}
+start: slist END	{evaluate($1);exit(1);}
 	;
 
 slist: slist stmt
@@ -36,21 +51,15 @@ slist: slist stmt
 	;
 
 stmt: ID ASGN expr ';'	{
-			if(var[$1 - 'a'] == NULL) {
-				var[$1 - 'a'] = malloc(sizeof(int));
-			}
-			*var[$1 - 'a'] = $3;
+			$$ = TreeCreate(-1, ASGN, -1, NULL, NULL, $1, $3, NULL);
 		}
 
 		| READ '(' ID ')' ';'	{
-			if (var[$3 - 'a'] == NULL) {
-				var[$3 - 'a'] = malloc(sizeof(int));
-			}
-			scanf("%d", var[$3 - 'a']);
+			$$ = TreeCreate(-1, READ, -1, NULL, NULL, $3, NULL, NULL);
 		}
 
 		| WRITE '(' expr ')' ';' {
-			printf("%d\n", $3);
+			$$ = TreeCreate(-1, PARENS, -1, NULL, NULL, $3, NULL, NULL);
 		}
 
 		| IF '(' expr ')' THEN slist ENDIF ';' {
@@ -63,34 +72,28 @@ stmt: ID ASGN expr ';'	{
 		;
 
 expr: expr PLUS expr	{
-	//printf("In PLUS\n");
-	//printf("$1 = %d\n", $1);
-	//printf("$3 = %d\n", $3);
-	$$ = $1 + $3;
-}
-	 | expr MUL expr	{$$ = $1 * $3;}
+		$$ = makeOperatorNode(PLUS, $1, $3);
+	}
+	 | expr MUL expr	{$$ = makeOperatorNode(MUL, $1, $3);}
 
-	 | '(' expr ')'		{$$ = $2;}
+	 | '(' expr ')'		{$$ = TreeCreate(-1, PARENS, -1, NULL, NULL, $2, NULL, NULL);}
 
 	 | NUM			{$$ = $1;}
 
 	 | ID {
-    if (var[$1 - 'a'] == NULL)
-      printf("Unassigned variable");
-		else
-			$$ = *var[$1 - 'a'];
+    $$ = $1;
    }
 
 	 | expr LT expr {
-
+		 $$ = makeOperatorNode(LT, $1, $3);
 	 }
 
 	 | expr GT expr {
-
+		 $$ = makeOperatorNode(GT, $1, $3);
 	 }
 
 	 | expr EQ expr {
-
+		 $$ = makeOperatorNode(EQ, $1, $3);
 	 }
 	 ;
 
