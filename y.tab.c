@@ -1334,7 +1334,7 @@ yyreduce:
   case 8:
 #line 71 "expl.y" /* yacc.c:1646  */
     {
-
+			(yyval.tnode_ptr) = TreeCreate(-1, IF, -1, NULL, NULL, (yyvsp[-5].tnode_ptr), (yyvsp[-2].tnode_ptr), NULL);
 		}
 #line 1340 "y.tab.c" /* yacc.c:1646  */
     break;
@@ -1342,7 +1342,7 @@ yyreduce:
   case 9:
 #line 75 "expl.y" /* yacc.c:1646  */
     {
-
+			(yyval.tnode_ptr) = TreeCreate(-1, WHILE, -1, NULL, NULL, (yyvsp[-5].tnode_ptr), (yyvsp[-2].tnode_ptr), NULL);
 		}
 #line 1348 "y.tab.c" /* yacc.c:1646  */
     break;

@@ -69,11 +69,11 @@ stmt: ID ASGN expr ';'	{
 		}
 
 		| IF '(' expr ')' THEN slist ENDIF ';' {
-
+			$$ = TreeCreate(-1, IF, -1, NULL, NULL, $3, $6, NULL);
 		}
 
 		| WHILE '(' expr ')' DO slist ENDWHILE ';' {
-
+			$$ = TreeCreate(-1, WHILE, -1, NULL, NULL, $3, $6, NULL);
 		}
 		;
 

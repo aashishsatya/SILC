@@ -35,6 +35,7 @@
 "do" {return DO;}
 "endwhile" {return ENDWHILE;}
 "endif" {return ENDIF;}
+"then" {return THEN;}
 
 "-"	{return MINUS;}
 "+"	{return PLUS;}

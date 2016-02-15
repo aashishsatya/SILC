@@ -47,6 +47,7 @@ int evaluate(struct Tnode *t){
     printf("Starting evaluate...\n");
     struct Tnode *id_to_assign = NULL;  // in case we need to get the name of the variable to work on
     struct Tnode *next_arg;
+    int truth_value;  // for if and while
     char id_name; // this variable will store the name of the ID obtained from id_to_assign
     if (t == NULL) {
       printf("t is NULL\n");
@@ -155,6 +156,20 @@ int evaluate(struct Tnode *t){
         printf("done.\n");
         evaluate(t->Ptr2);
         printf("Done valuating next arg in SLIST.\n");
+        return -1;
+      case IF:
+        // check if boolean expressione evaluates to true
+        truth_value = evaluate(t -> Ptr1);
+        if (truth_value) {
+          evaluate(t -> Ptr2);
+        }
+        return -1;
+      case WHILE:
+        truth_value = evaluate(t -> Ptr1);
+        while (truth_value) {
+          evaluate(t -> Ptr2);
+          truth_value = evaluate(t -> Ptr1);
+        }
         return -1;
       default:
         printf("Inside DEFAULT\n");
