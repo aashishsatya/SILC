@@ -62,7 +62,9 @@ extern int yydebug;
     PARENS = 272,
     THEN = 273,
     ID = 274,
-    NUM = 275
+    NUM = 275,
+    DIV = 276,
+    MINUS = 277
   };
 #endif
 /* Tokens.  */
@@ -84,6 +86,8 @@ extern int yydebug;
 #define THEN 273
 #define ID 274
 #define NUM 275
+#define DIV 276
+#define MINUS 277
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -95,7 +99,7 @@ union YYSTYPE
 	int int_val;
 	struct  Tnode *tnode_ptr;
 
-#line 99 "y.tab.h" /* yacc.c:1909  */
+#line 103 "y.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

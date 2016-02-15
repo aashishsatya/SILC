@@ -36,8 +36,10 @@
 "endwhile" {return ENDWHILE;}
 "endif" {return ENDIF;}
 
+"-"	{return MINUS;}
 "+"	{return PLUS;}
 "*"	{return MUL;}
+"/"	{return DIV;}
 "<" {return LT;}
 ">" {return GT;}
 "==" {return EQ;}

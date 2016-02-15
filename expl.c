@@ -56,6 +56,10 @@ int evaluate(struct Tnode *t){
     switch (t -> NODETYPE) {
       case PLUS:
         return evaluate(t -> Ptr1) + evaluate(t -> Ptr2);
+      case MINUS:
+        return evaluate(t -> Ptr1) - evaluate(t -> Ptr2);
+      case DIV:
+        return evaluate(t -> Ptr1) / evaluate(t -> Ptr2);
       case MUL:
         return evaluate(t -> Ptr1) * evaluate(t -> Ptr2);
       case EQ:

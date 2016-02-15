@@ -14,7 +14,7 @@
 	struct  Tnode *tnode_ptr;
 }
 
-%token PLUS MUL END ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM
+%token PLUS MUL END ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -22,6 +22,8 @@
 %type <tnode_ptr> slist;
 %type <tnode_ptr> ID;
 %type <tnode_ptr> PLUS;
+%type <tnode_ptr> DIV;
+%type <tnode_ptr> MINUS;
 %type <tnode_ptr> MUL;
 %type <tnode_ptr> END;
 %type <tnode_ptr> ASGN;
@@ -37,8 +39,8 @@
 %type <tnode_ptr> ENDIF;
 %type <tnode_ptr> PARENS;
 %type <tnode_ptr> THEN;
-%left PLUS
-%left MUL
+%left PLUS MINUS
+%left MUL DIV
 %nonassoc LT GT EQ
 
 %%
@@ -79,6 +81,10 @@ expr: expr PLUS expr	{
 		$$ = makeOperatorNode(PLUS, $1, $3);
 	}
 	 | expr MUL expr	{$$ = makeOperatorNode(MUL, $1, $3);}
+
+	 | expr MINUS expr	{$$ = makeOperatorNode(MINUS, $1, $3);}
+
+	 | expr DIV expr	{$$ = makeOperatorNode(DIV, $1, $3);}
 
 	 | '(' expr ')'		{$$ = TreeCreate(-1, PARENS, -1, NULL, NULL, $2, NULL, NULL);}
 
