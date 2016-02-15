@@ -46,12 +46,14 @@
 start: slist END	{evaluate($1);exit(1);}
 	;
 
-slist: slist stmt
-	| stmt	{}
+slist: slist stmt	{$$ = TreeCreate(-1, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, NULL);}
+	| stmt	{$$ = $1;}
 	;
 
 stmt: ID ASGN expr ';'	{
+			printf("Found assignment operation..\n");
 			$$ = TreeCreate(-1, ASGN, -1, NULL, NULL, $1, $3, NULL);
+			printf("TreeCreate for ASGN successful.\n");
 		}
 
 		| READ '(' ID ')' ';'	{
@@ -59,7 +61,9 @@ stmt: ID ASGN expr ';'	{
 		}
 
 		| WRITE '(' expr ')' ';' {
-			$$ = TreeCreate(-1, PARENS, -1, NULL, NULL, $3, NULL, NULL);
+			printf("Found WRITE...\n");
+			$$ = TreeCreate(-1, WRITE, -1, NULL, NULL, $3, NULL, NULL);
+			printf("Write tree creation successful.\n");
 		}
 
 		| IF '(' expr ')' THEN slist ENDIF ';' {
@@ -78,7 +82,7 @@ expr: expr PLUS expr	{
 
 	 | '(' expr ')'		{$$ = TreeCreate(-1, PARENS, -1, NULL, NULL, $2, NULL, NULL);}
 
-	 | NUM			{$$ = $1;}
+	 | NUM			{printf("Found NUM...\n");$$ = $1;}
 
 	 | ID {
     $$ = $1;

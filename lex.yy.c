@@ -763,113 +763,123 @@ case 1:
 YY_RULE_SETUP
 #line 9 "expl.l"
 {
-	char variable_name = yytext[0];
-	yylval.tnode_ptr = (struct Tnode *) TreeCreate(-1, ID, -1, &variable_name);
+	//char variable_name = yytext[0];
+	char *variable_name = (char *) malloc (sizeof(yytext));
+	strcpy(variable_name, yytext);
+	printf("Vbl name: %c\n", variable_name[0]);
+	yylval.tnode_ptr = TreeCreate(-1, ID, -1, variable_name);
+	printf("Returning ID...\n");
 	//printf("Saw value %d", value);
 	//yylval.tnode_ptr = value;
+	//printf("Reading back\n");
+	//char *id_name_ptr = yylval.tnode_ptr->NAME;
+	//printf("%c\n", id_name_ptr[0]);
 	return ID;
 }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 16 "expl.l"
+#line 23 "expl.l"
 {
+	printf("ID'ed NUM, working...\n");
+	printf("Value of NUM = %d\n", atoi(yytext));
 	yylval.tnode_ptr = TreeCreate(-1, NUM, atoi(yytext));
+	printf("Created a node for NUM...\n");
 	return NUM;
 }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 21 "expl.l"
+#line 31 "expl.l"
 { return READ;}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 22 "expl.l"
+#line 32 "expl.l"
 {return WRITE;}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 23 "expl.l"
+#line 33 "expl.l"
 {return IF;}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 24 "expl.l"
+#line 34 "expl.l"
 {return WHILE;}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 25 "expl.l"
+#line 35 "expl.l"
 {return DO;}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 26 "expl.l"
+#line 36 "expl.l"
 {return ENDWHILE;}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 27 "expl.l"
+#line 37 "expl.l"
 {return ENDIF;}
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 29 "expl.l"
+#line 39 "expl.l"
 {return PLUS;}
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 30 "expl.l"
+#line 40 "expl.l"
 {return MUL;}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 31 "expl.l"
+#line 41 "expl.l"
 {return LT;}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 32 "expl.l"
+#line 42 "expl.l"
 {return GT;}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 33 "expl.l"
+#line 43 "expl.l"
 {return EQ;}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 34 "expl.l"
-{return ASGN;}
+#line 44 "expl.l"
+{printf("Returning ASGN...\n");return ASGN;}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 35 "expl.l"
+#line 45 "expl.l"
 {return *yytext;}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 37 "expl.l"
+#line 47 "expl.l"
 {}
 	YY_BREAK
 case 18:
 /* rule 18 can match eol */
 YY_RULE_SETUP
-#line 38 "expl.l"
+#line 48 "expl.l"
 {return END;}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 39 "expl.l"
+#line 49 "expl.l"
 {yyerror("unknown character\n");exit(1);}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 41 "expl.l"
+#line 51 "expl.l"
 ECHO;
 	YY_BREAK
-#line 873 "lex.yy.c"
+#line 883 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1867,7 +1877,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 41 "expl.l"
+#line 51 "expl.l"
 
 
 
