@@ -7,6 +7,7 @@
 	int yylex(void);
 
   int *var[26];
+	int variable_type;	// this will store the type of the variable that is being processed
 %}
 
 %union {
@@ -14,7 +15,7 @@
 	struct  Tnode *tnode_ptr;
 }
 
-%token PLUS MUL END ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS
+%token PLUS MUL END ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -39,6 +40,9 @@
 %type <tnode_ptr> ENDIF;
 %type <tnode_ptr> PARENS;
 %type <tnode_ptr> THEN;
+%type <tnode_ptr> DECL;
+%type <tnode_ptr> ENDDECL;
+
 %left PLUS MINUS
 %left MUL DIV
 %nonassoc LT GT EQ
@@ -48,8 +52,39 @@
 start: slist END	{evaluate($1);exit(1);}
 	;
 
-slist: slist stmt	{$$ = TreeCreate(-1, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, NULL);}
+slist: declarations list stmt	{$$ = TreeCreate(-1, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, NULL);}
 	| stmt	{$$ = $1;}
+	;
+
+declarations: DECL dec_list ENDDECL {}
+
+dec_list: dec dec_list {}
+	| dec {}
+	;
+
+// a declaration is a type followed by a name followed by [], which are optional
+
+type: INT {variable_type = VAR_TYPE_INT}
+	| BOOL {variable_type = VAR_TYPE_BOOL}
+	;
+
+dec: type id_list ';' {}
+
+id_list:	id_list ',' ID ';' {
+
+	}
+
+	| id_list ',' ID '[' NUM ']' ';' {
+
+	}
+
+	|	type ID ';' {
+
+	}
+
+	| type	ID '[' NUM ']' ';' {
+
+	}
 	;
 
 stmt: ID ASGN expr ';'	{

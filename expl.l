@@ -10,9 +10,9 @@
 	//char variable_name = yytext[0];
 	char *variable_name = (char *) malloc (sizeof(yytext));
 	strcpy(variable_name, yytext);
-	printf("Vbl name: %c\n", variable_name[0]);
+	//printf("Vbl name: %c\n", variable_name[0]);
 	yylval.tnode_ptr = TreeCreate(-1, ID, -1, variable_name);
-	printf("Returning ID...\n");
+	//printf("Returning ID...\n");
 	//printf("Saw value %d", value);
 	//yylval.tnode_ptr = value;
 	//printf("Reading back\n");
@@ -21,10 +21,10 @@
 	return ID;
 }
 [0-9]+  {
-	printf("ID'ed NUM, working...\n");
-	printf("Value of NUM = %d\n", atoi(yytext));
+	//printf("ID'ed NUM, working...\n");
+	//printf("Value of NUM = %d\n", atoi(yytext));
 	yylval.tnode_ptr = TreeCreate(-1, NUM, atoi(yytext));
-	printf("Created a node for NUM...\n");
+	//printf("Created a node for NUM...\n");
 	return NUM;
 }
 
@@ -36,6 +36,10 @@
 "endwhile" {return ENDWHILE;}
 "endif" {return ENDIF;}
 "then" {return THEN;}
+"decl" {return DECL;}
+"enddecl" {return ENDDECL;}
+"integer" {return INT;}
+"boolean" {return BOOL;}
 
 "-"	{return MINUS;}
 "+"	{return PLUS;}
@@ -44,7 +48,7 @@
 "<" {return LT;}
 ">" {return GT;}
 "==" {return EQ;}
-[=]  {printf("Returning ASGN...\n");return ASGN;}
+[=]  {//printf("Returning ASGN...\n");return ASGN;}
 [();]	{return *yytext;}
 
 [ \t]	{}

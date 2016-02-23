@@ -1,3 +1,6 @@
+#define VAR_TYPE_BOOL 0
+#define VART_TYPE_INT 1
+
 struct Tnode {
 
   int TYPE; // Integer, Boolean or Void (for statements)
@@ -22,11 +25,63 @@ struct Tnode {
 
   /* Maximum of three subtrees (3 required for IF THEN ELSE) */
 
-  //Gsymbol *Gentry; // For global identifiers/functions
+  struct Gsymbol *Gentry; // For global identifiers/functions
 
   //Lsymbol *Lentry; // For Local variables
 
 };
+
+// structure for storing details about function argument
+
+struct ArgStruct {
+
+    char *NAME; // name of the argument
+
+    int TYPE; // type of the argument
+};
+
+/** Symbol Table Entry is required for variables, arrays and functions**/
+
+struct Gsymbol {
+
+  char *NAME; // Name of the Identifier
+
+  int TYPE; // TYPE can be INTEGER or BOOLEAN
+
+  /***The TYPE field must be a TypeStruct if user defined types are allowed***/
+
+  int SIZE; // Size field for arrays
+
+  int *BINDING; // Address of the Identifier in Memory
+
+  struct ArgStruct *ARGLIST; // Argument List for functions
+
+  /***Argstruct must store the name and type of each argument ***/
+
+  struct Gsymbol *NEXT; // Pointer to next Symbol Table Entry */
+
+};
+
+struct Gsymbol *Glookup(char *NAME); // Look up for a global identifier
+
+void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST); // Installation
+
+
+struct Lsymbol {
+
+/* Here only name, type, binding and pointer to next entry needed */
+
+  char *NAME;
+
+  int *BINDING;
+
+  struct Lsymbol *NEXT;
+
+};
+
+struct Lsymbol *Llookup(char *NAME);
+
+void Linstall(char *NAME, int TYPE);
 
 struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct Tnode *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3);
 
