@@ -3,8 +3,10 @@
 	#include <stdlib.h>
 
 	#include "expl.c"
+	#include "y.tab.h"
 
 	int yylex(void);
+	extern FILE *yyin;
 
   int *var[26];
 	int variable_type;	// this will store the type of the variable that is being processed
@@ -15,7 +17,7 @@
 	struct  Tnode *tnode_ptr;
 }
 
-%token PLUS MUL END ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL
+%token PLUS MUL END ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -42,6 +44,10 @@
 %type <tnode_ptr> THEN;
 %type <tnode_ptr> DECL;
 %type <tnode_ptr> ENDDECL;
+%type <tnode_ptr> INT;
+%type <tnode_ptr> BOOL;
+%type <tnode_ptr> declarations;
+%type <tnode_ptr> ENDOFFILE;
 
 %left PLUS MINUS
 %left MUL DIV
@@ -49,10 +55,13 @@
 
 %%
 
-start: slist END	{evaluate($1);exit(1);}
+start: declarations slist ENDOFFILE	{
+		evaluate($2);	// evaluate statements
+		exit(1);
+	}
 	;
 
-slist: declarations list stmt	{$$ = TreeCreate(-1, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, NULL);}
+slist: slist stmt	{$$ = TreeCreate(-1, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, NULL);}
 	| stmt	{$$ = $1;}
 	;
 
@@ -64,26 +73,26 @@ dec_list: dec dec_list {}
 
 // a declaration is a type followed by a name followed by [], which are optional
 
-type: INT {variable_type = VAR_TYPE_INT}
-	| BOOL {variable_type = VAR_TYPE_BOOL}
+type: INT {variable_type = VAR_TYPE_INT;}
+	| BOOL {variable_type = VAR_TYPE_BOOL;}
 	;
 
 dec: type id_list ';' {}
 
-id_list:	id_list ',' ID ';' {
-
+id_list:	id_list ',' ID	{
+		Ginstall($3 -> NAME, variable_type, 1, NULL);
 	}
 
-	| id_list ',' ID '[' NUM ']' ';' {
-
+	| id_list ',' ID '[' NUM ']' {
+		Ginstall($3 -> NAME, variable_type, $5 -> VALUE, NULL);
 	}
 
-	|	type ID ';' {
-
+	|	ID {
+		Ginstall($1 -> NAME, variable_type, 1, NULL);
 	}
 
-	| type	ID '[' NUM ']' ';' {
-
+	| ID '[' NUM ']' {
+		Ginstall($1 -> NAME, variable_type, $3 -> VALUE, NULL);
 	}
 	;
 
@@ -98,9 +107,7 @@ stmt: ID ASGN expr ';'	{
 		}
 
 		| WRITE '(' expr ')' ';' {
-			printf("Found WRITE...\n");
 			$$ = TreeCreate(-1, WRITE, -1, NULL, NULL, $3, NULL, NULL);
-			printf("Write tree creation successful.\n");
 		}
 
 		| IF '(' expr ')' THEN slist ENDIF ';' {
@@ -150,7 +157,13 @@ yyerror(char const *s)
 }
 
 
-int main(void) {
+int main(int argc, char *argv[]) {
+	if(argc>1)
+	{
+    	FILE *fp = fopen(argv[1],"r");
+    	if(fp)
+        	yyin = fp;
+	}
 	yyparse();
 	return 0;
 }

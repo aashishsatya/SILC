@@ -4,7 +4,14 @@
 	#include "y.tab.h"
 %}
 
+whitespaces [ \t]
+NL 	[\n]
+
 %%
+
+<<EOF>>    	{return ENDOFFILE;} //returns end of file
+{NL}    	;
+{whitespaces} ;
 
 [a-z] {
 	//char variable_name = yytext[0];
@@ -48,11 +55,9 @@
 "<" {return LT;}
 ">" {return GT;}
 "==" {return EQ;}
-[=]  {//printf("Returning ASGN...\n");return ASGN;}
+[=]  {return ASGN;}
 [();]	{return *yytext;}
 
-[ \t]	{}
-[\n]	{return END;}
 .	{yyerror("unknown character\n");exit(1);}
 
 %%

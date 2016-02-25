@@ -1,5 +1,5 @@
 #define VAR_TYPE_BOOL 0
-#define VART_TYPE_INT 1
+#define VAR_TYPE_INT 1
 
 struct Tnode {
 
@@ -62,6 +62,9 @@ struct Gsymbol {
 
 };
 
+struct Gsymbol *global_symbol_table_start = NULL;
+struct Gsymbol *global_symbol_table_end = NULL;  // for easier appending
+
 struct Gsymbol *Glookup(char *NAME); // Look up for a global identifier
 
 void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST); // Installation
@@ -89,7 +92,7 @@ struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct T
 struct Tnode* makeLeafNode(int n);
 
 /*Make a Tnode with opertor, left and right branches set*/
-struct Tnode* makeOperatorNode(int c, struct Tnode *l,struct Tnode *r);
+struct Tnode* makeOperatorNode(int c, struct Tnode *l, struct Tnode *r);
 
 /*To evaluate an expression tree*/
 int evaluate(struct Tnode *t);

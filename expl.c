@@ -12,7 +12,7 @@ int *var[26];
     return temp;
 }*/
 
-struct Tnode* torNode(int c, struct Tnode *l, struct Tnode *r){
+struct Tnode* makeOperatorNode(int c, struct Tnode *l, struct Tnode *r){
     struct Tnode *temp;
     temp = TreeCreate(-1, c, -1, NULL, NULL, l, r, NULL);
     return temp;
@@ -47,8 +47,9 @@ int evaluate(struct Tnode *t){
     //printf("Starting evaluate...\n");
     struct Tnode *id_to_assign = NULL;  // in case we need to get the name of the variable to work on
     struct Tnode *next_arg;
+    struct Gsymbol *id_entry; // to store the pointer to the entry in the symbol table
     int truth_value;  // for if and while
-    char id_name; // this variable will store the name of the ID obtained from id_to_assign
+    char *id_name; // this variable will store the name of the ID obtained from id_to_assign
     if (t == NULL) {
       //printf("t is NULL\n");
       int t_nodetype = t -> NODETYPE;
@@ -79,73 +80,79 @@ int evaluate(struct Tnode *t){
         id_to_assign = t -> Ptr1;  // this will obviously be an ID
         // its name will be stored in NAME field
         // allocate memory accordingly
-        id_name = (id_to_assign -> NAME)[0]; // [0] because NAME is a pointer
-        //printf("ID name to assign: %c\n", id_name);
-        if (var[id_name - 'a'] == NULL) {
-          //printf("Allocating space for storing variable...");
-          var[id_name - 'a'] = (int *) malloc (sizeof(int));
-          //printf("done.\n");
+        id_name = id_to_assign -> NAME; // [0] because NAME is a pointer
+        // look up the symbol in the symbol table
+        id_entry = Glookup(id_name);
+        if (id_entry == NULL) {
+          // entry was not defined
+          // error
+          printf("Identifier was not declared, exiting...\n");
+          exit(0);
         }
-        //printf("Malloc successful...\n");
-        //printf("Value to set = %d\n", evaluate(t -> Ptr2));
-        *var[id_name - 'a'] = evaluate(t -> Ptr2);
+        // we have a proper ID
+        // assign the value to this ID
+        *(id_entry -> BINDING) = evaluate(t -> Ptr2);
         // just return something, doesn't matter what it is
         // point is, C can return any value, you just have to make sure that *SILC* doesn't.
         //printf("Returning from ASGN...\n");
         return -1;
       case ID:
-        //printf("In case ID...\n");
-        // in this case, we have to check if ID has been assigned a value
-        // if not its an error
-        // the only other case has been handled earlier
-        //id_to_assign = t -> Ptr1;  // this will obviously be an ID
+        // if we call evaluate on ID, if ID was not previously assigned a value the program will raise an error
+        // so we must do at least the LHS part of the operation here
+        id_to_assign = t -> Ptr1;  // this will obviously be an ID
         // its name will be stored in NAME field
         // allocate memory accordingly
-        //printf("Trying to get the ID name...\n");
-        //printf("id_to_assign = %p\n", id_to_assign);
-        /*if (id_to_assign == NULL) {
-          //printf("Warning: id_to_assign is NULL.\n");
+        id_name = id_to_assign -> NAME; // [0] because NAME is a pointer
+        // look up the symbol in the symbol table
+        id_entry = Glookup(id_name);
+        if (id_entry == NULL) {
+          // entry was not defined
+          // error
+          printf("Identifier was not declared, exiting...\n");
+          exit(0);
         }
-        if (id_to_assign -> NAME == NULL) {
-          //printf("Warning: id_to_assign -> NAME is NULL.\n");
-        }*/
-        //printf("Trying to assign_name...\n");
-        id_name = (t -> NAME)[0]; // [0] because NAME is a pointer
-        //printf("done.\n");
-        //printf("Dealing with ID %c...", id_name);
-        if (var[id_name - 'a'] == NULL) {
-          var[id_name - 'a'] = (int *) malloc (sizeof(int));
-          return -1;
-        }
-        else {
-          return *var[id_name - 'a'];
-        }
-        //printf("done.\n");
+        // there can be two cases when this case is reached:
+        // 1) when evaluating an expression, such as price * quantity
+        // 2) when assigning a value, e.g. price = 500
+        // we are assured that at least memory for the variable has been allocated
+        // so just return whatever's in the memory and let the caller take care of the rest
+        return *(id_entry -> BINDING);
       case PARENS:
         // again, nothing to do, just evaluate its parameter
         return evaluate(t -> Ptr1);
       case READ:
-        //printf("Inside READ...\n");
         // do the actual reading
         // find the name of the variable
         id_to_assign = t -> Ptr1;  // this will obviously be an ID
         // its name will be stored in NAME field
         // allocate memory accordingly
-        id_name = (id_to_assign -> NAME)[0]; // [0] because NAME is a pointer
-        if (var[id_name - 'a'] == NULL) {
-          var[id_name - 'a'] = (int *) malloc (sizeof(int));
+        id_name = id_to_assign -> NAME; // [0] because NAME is a pointer
+        // look up the symbol in the symbol table
+        id_entry = Glookup(id_name);
+        if (id_entry == NULL) {
+          // entry was not defined
+          // error
+          printf("Identifier was not declared, exiting...\n");
+          exit(0);
         }
-        scanf("%d", var[id_name - 'a']);
-        //printf("...done reading.\n");
+        scanf("%d", id_entry -> BINDING);
         return -1;
       case WRITE:
-        //printf("Inside WRITE, working...\n");
         // do the writing
         // find the name of the variable
         id_to_assign = t -> Ptr1;  // this will obviously be an ID
         // its name will be stored in NAME field
-        id_name = (id_to_assign -> NAME)[0]; // [0] because NAME is a pointer
-        printf("\n%d\n\n", *var[id_name - 'a']);
+        // allocate memory accordingly
+        id_name = id_to_assign -> NAME; // [0] because NAME is a pointer
+        // look up the symbol in the symbol table
+        id_entry = Glookup(id_name);
+        if (id_entry == NULL) {
+          // entry was not defined
+          // error
+          printf("Identifier was not declared, exiting...\n");
+          exit(0);
+        }
+        printf("%d\n", *(id_entry -> BINDING));
         return -1;
       case NODETYPE_SLIST:
         //printf("Evaluating first arg...\n");
@@ -172,7 +179,42 @@ int evaluate(struct Tnode *t){
         }
         return -1;
       default:
-        //printf("Inside DEFAULT\n");
         break;
     }
+}
+
+struct Gsymbol *Glookup(char *NAME) // Look up for a global identifier
+{
+    struct Gsymbol *temp = global_symbol_table_start;
+    while (temp != NULL) {
+      if (strcmp(temp -> NAME, NAME) == 0)
+        return temp;
+    }
+    return temp;
+}
+
+void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Installation
+{
+  struct Gsymbol *new_entry = (struct Gsymbol *) malloc(sizeof(struct Gsymbol));
+  new_entry -> NAME = NAME;
+  new_entry -> TYPE = TYPE;
+  new_entry -> SIZE = SIZE;
+  new_entry -> ARGLIST = ARGLIST;
+  new_entry -> NEXT = NULL;
+
+  // allocate space for the new entry
+  // since the storage is internally all integers, we just have to allocate space
+  // for SIZE integers
+
+  int *int_space = (int *) malloc(sizeof(int) * SIZE);
+  new_entry -> BINDING = int_space;
+
+  // update the last entry of the symbol table to point to this new entry
+  if (global_symbol_table_end == NULL) {
+    // first entry
+    global_symbol_table_end = new_entry;
+    global_symbol_table_start = new_entry;
+  }
+  else
+    global_symbol_table_end -> NEXT = new_entry;
 }

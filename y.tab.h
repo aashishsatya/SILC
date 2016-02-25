@@ -64,7 +64,12 @@ extern int yydebug;
     ID = 274,
     NUM = 275,
     DIV = 276,
-    MINUS = 277
+    MINUS = 277,
+    DECL = 278,
+    ENDDECL = 279,
+    BOOL = 280,
+    INT = 281,
+    ENDOFFILE = 282
   };
 #endif
 /* Tokens.  */
@@ -88,18 +93,23 @@ extern int yydebug;
 #define NUM 275
 #define DIV 276
 #define MINUS 277
+#define DECL 278
+#define ENDDECL 279
+#define BOOL 280
+#define INT 281
+#define ENDOFFILE 282
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 12 "expl.y" /* yacc.c:1909  */
+#line 15 "expl.y" /* yacc.c:1909  */
 
 	int int_val;
 	struct  Tnode *tnode_ptr;
 
-#line 103 "y.tab.h" /* yacc.c:1909  */
+#line 113 "y.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
