@@ -13,20 +13,6 @@ NL 	[\n]
 {NL}    	;
 {whitespaces} ;
 
-[a-z] {
-	//char variable_name = yytext[0];
-	char *variable_name = (char *) malloc (sizeof(yytext));
-	strcpy(variable_name, yytext);
-	//printf("Vbl name: %c\n", variable_name[0]);
-	yylval.tnode_ptr = TreeCreate(-1, ID, -1, variable_name);
-	//printf("Returning ID...\n");
-	//printf("Saw value %d", value);
-	//yylval.tnode_ptr = value;
-	//printf("Reading back\n");
-	//char *id_name_ptr = yylval.tnode_ptr->NAME;
-	//printf("%c\n", id_name_ptr[0]);
-	return ID;
-}
 [0-9]+  {
 	//printf("ID'ed NUM, working...\n");
 	//printf("Value of NUM = %d\n", atoi(yytext));
@@ -47,6 +33,22 @@ NL 	[\n]
 "enddecl" {return ENDDECL;}
 "integer" {return INT;}
 "boolean" {return BOOL;}
+
+[a-z][a-zA-Z0-9]* {
+	//char variable_name = yytext[0];
+	char *variable_name = (char *) malloc (50 * sizeof(yytext));
+
+	strcpy(variable_name, yytext);
+	//printf("Vbl name: %c\n", variable_name[0]);
+	yylval.tnode_ptr = TreeCreate(-1, ID, -1, variable_name);
+	//printf("Returning ID...\n");
+	//printf("Saw value %d", value);
+	//yylval.tnode_ptr = value;
+	//printf("Reading back\n");
+	//char *id_name_ptr = yylval.tnode_ptr->NAME;
+	//printf("%c\n", id_name_ptr[0]);
+	return ID;
+}
 
 "-"	{return MINUS;}
 "+"	{return PLUS;}

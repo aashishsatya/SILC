@@ -69,7 +69,6 @@ struct Gsymbol *Glookup(char *NAME); // Look up for a global identifier
 
 void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST); // Installation
 
-
 struct Lsymbol {
 
 /* Here only name, type, binding and pointer to next entry needed */

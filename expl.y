@@ -17,7 +17,7 @@
 	struct  Tnode *tnode_ptr;
 }
 
-%token PLUS MUL END ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE
+%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -28,7 +28,6 @@
 %type <tnode_ptr> DIV;
 %type <tnode_ptr> MINUS;
 %type <tnode_ptr> MUL;
-%type <tnode_ptr> END;
 %type <tnode_ptr> ASGN;
 %type <tnode_ptr> READ;
 %type <tnode_ptr> WRITE;

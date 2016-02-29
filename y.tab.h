@@ -47,57 +47,55 @@ extern int yydebug;
   {
     PLUS = 258,
     MUL = 259,
-    END = 260,
-    ASGN = 261,
-    READ = 262,
-    WRITE = 263,
-    LT = 264,
-    GT = 265,
-    EQ = 266,
-    IF = 267,
-    WHILE = 268,
-    DO = 269,
-    ENDWHILE = 270,
-    ENDIF = 271,
-    PARENS = 272,
-    THEN = 273,
-    ID = 274,
-    NUM = 275,
-    DIV = 276,
-    MINUS = 277,
-    DECL = 278,
-    ENDDECL = 279,
-    BOOL = 280,
-    INT = 281,
-    ENDOFFILE = 282
+    ASGN = 260,
+    READ = 261,
+    WRITE = 262,
+    LT = 263,
+    GT = 264,
+    EQ = 265,
+    IF = 266,
+    WHILE = 267,
+    DO = 268,
+    ENDWHILE = 269,
+    ENDIF = 270,
+    PARENS = 271,
+    THEN = 272,
+    ID = 273,
+    NUM = 274,
+    DIV = 275,
+    MINUS = 276,
+    DECL = 277,
+    ENDDECL = 278,
+    BOOL = 279,
+    INT = 280,
+    ENDOFFILE = 281
   };
 #endif
 /* Tokens.  */
 #define PLUS 258
 #define MUL 259
-#define END 260
-#define ASGN 261
-#define READ 262
-#define WRITE 263
-#define LT 264
-#define GT 265
-#define EQ 266
-#define IF 267
-#define WHILE 268
-#define DO 269
-#define ENDWHILE 270
-#define ENDIF 271
-#define PARENS 272
-#define THEN 273
-#define ID 274
-#define NUM 275
-#define DIV 276
-#define MINUS 277
-#define DECL 278
-#define ENDDECL 279
-#define BOOL 280
-#define INT 281
-#define ENDOFFILE 282
+#define ASGN 260
+#define READ 261
+#define WRITE 262
+#define LT 263
+#define GT 264
+#define EQ 265
+#define IF 266
+#define WHILE 267
+#define DO 268
+#define ENDWHILE 269
+#define ENDIF 270
+#define PARENS 271
+#define THEN 272
+#define ID 273
+#define NUM 274
+#define DIV 275
+#define MINUS 276
+#define DECL 277
+#define ENDDECL 278
+#define BOOL 279
+#define INT 280
+#define ENDOFFILE 281
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -109,7 +107,7 @@ union YYSTYPE
 	int int_val;
 	struct  Tnode *tnode_ptr;
 
-#line 113 "y.tab.h" /* yacc.c:1909  */
+#line 111 "y.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
