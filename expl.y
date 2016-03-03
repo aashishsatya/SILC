@@ -83,7 +83,18 @@ id_list:	id_list ',' ID	{
 	}
 
 	| id_list ',' ID '[' NUM ']' {
-		Ginstall($3 -> NAME, variable_type, $5 -> VALUE, NULL);
+		switch (variable_type) {
+			case VAR_TYPE_INT:
+				// so the variable is of type integer
+				// but it's an array
+				// so install it as such
+				Ginstall($3 -> NAME, VAR_TYPE_INT_ARR, $5 -> VALUE, NULL);
+				break;
+			case VAR_TYPE_BOOL:
+				// ditto
+				Ginstall($3 -> NAME, VAR_TYPE_INT_ARR, $5 -> VALUE, NULL);
+				break;
+		}
 	}
 
 	|	ID {
@@ -91,14 +102,23 @@ id_list:	id_list ',' ID	{
 	}
 
 	| ID '[' NUM ']' {
-		Ginstall($1 -> NAME, variable_type, $3 -> VALUE, NULL);
+		switch (variable_type) {
+			case VAR_TYPE_INT:
+				// so the variable is of type integer
+				// but it's an array
+				// so install it as such
+				Ginstall($1 -> NAME, VAR_TYPE_INT_ARR, $3 -> VALUE, NULL);
+				break;
+			case VAR_TYPE_BOOL:
+				// ditto
+				Ginstall($1 -> NAME, VAR_TYPE_INT_ARR, $3 -> VALUE, NULL);
+				break;
+		}
 	}
 	;
 
 stmt: ID ASGN expr ';'	{
-			printf("Found assignment operation..\n");
 			$$ = TreeCreate(-1, ASGN, -1, NULL, NULL, $1, $3, NULL);
-			printf("TreeCreate for ASGN successful.\n");
 		}
 
 		| READ '(' ID ')' ';'	{
@@ -129,7 +149,7 @@ expr: expr PLUS expr	{
 
 	 | '(' expr ')'		{$$ = TreeCreate(-1, PARENS, -1, NULL, NULL, $2, NULL, NULL);}
 
-	 | NUM			{printf("Found NUM...\n");$$ = $1;}
+	 | NUM			{$$ = $1;}
 
 	 | ID {
     $$ = $1;
@@ -164,5 +184,15 @@ int main(int argc, char *argv[]) {
         	yyin = fp;
 	}
 	yyparse();
+
+	// deallocate memory used in symbol table
+	struct Gsymbol *temp = global_symbol_table_start;
+
+	while (temp != NULL) {
+		global_symbol_table_start = global_symbol_table_start -> NEXT;
+		free(temp);
+		temp = global_symbol_table_start;
+	}
+
 	return 0;
 }

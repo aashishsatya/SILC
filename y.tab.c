@@ -489,8 +489,8 @@ static const yytype_uint8 yytranslate[] =
 static const yytype_uint8 yyrline[] =
 {
        0,    57,    57,    63,    64,    67,    69,    70,    75,    76,
-      79,    81,    85,    89,    93,    98,   104,   108,   112,   116,
-     121,   124,   126,   128,   130,   132,   134,   138,   142,   146
+      79,    81,    85,   100,   104,   120,   124,   128,   132,   136,
+     141,   144,   146,   148,   150,   152,   154,   158,   162,   166
 };
 #endif
 
@@ -1379,141 +1379,161 @@ yyreduce:
   case 12:
 #line 85 "expl.y" /* yacc.c:1646  */
     {
-		Ginstall((yyvsp[-3].tnode_ptr) -> NAME, variable_type, (yyvsp[-1].tnode_ptr) -> VALUE, NULL);
+		switch (variable_type) {
+			case VAR_TYPE_INT:
+				// so the variable is of type integer
+				// but it's an array
+				// so install it as such
+				Ginstall((yyvsp[-3].tnode_ptr) -> NAME, VAR_TYPE_INT_ARR, (yyvsp[-1].tnode_ptr) -> VALUE, NULL);
+				break;
+			case VAR_TYPE_BOOL:
+				// ditto
+				Ginstall((yyvsp[-3].tnode_ptr) -> NAME, VAR_TYPE_INT_ARR, (yyvsp[-1].tnode_ptr) -> VALUE, NULL);
+				break;
+		}
 	}
-#line 1385 "y.tab.c" /* yacc.c:1646  */
+#line 1396 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 13:
-#line 89 "expl.y" /* yacc.c:1646  */
+#line 100 "expl.y" /* yacc.c:1646  */
     {
 		Ginstall((yyvsp[0].tnode_ptr) -> NAME, variable_type, 1, NULL);
 	}
-#line 1393 "y.tab.c" /* yacc.c:1646  */
+#line 1404 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 14:
-#line 93 "expl.y" /* yacc.c:1646  */
+#line 104 "expl.y" /* yacc.c:1646  */
     {
-		Ginstall((yyvsp[-3].tnode_ptr) -> NAME, variable_type, (yyvsp[-1].tnode_ptr) -> VALUE, NULL);
+		switch (variable_type) {
+			case VAR_TYPE_INT:
+				// so the variable is of type integer
+				// but it's an array
+				// so install it as such
+				Ginstall((yyvsp[-3].tnode_ptr) -> NAME, VAR_TYPE_INT_ARR, (yyvsp[-1].tnode_ptr) -> VALUE, NULL);
+				break;
+			case VAR_TYPE_BOOL:
+				// ditto
+				Ginstall((yyvsp[-3].tnode_ptr) -> NAME, VAR_TYPE_INT_ARR, (yyvsp[-1].tnode_ptr) -> VALUE, NULL);
+				break;
+		}
 	}
-#line 1401 "y.tab.c" /* yacc.c:1646  */
+#line 1423 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 15:
-#line 98 "expl.y" /* yacc.c:1646  */
+#line 120 "expl.y" /* yacc.c:1646  */
     {
-			printf("Found assignment operation..\n");
 			(yyval.tnode_ptr) = TreeCreate(-1, ASGN, -1, NULL, NULL, (yyvsp[-3].tnode_ptr), (yyvsp[-1].tnode_ptr), NULL);
-			printf("TreeCreate for ASGN successful.\n");
 		}
-#line 1411 "y.tab.c" /* yacc.c:1646  */
+#line 1431 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 16:
-#line 104 "expl.y" /* yacc.c:1646  */
+#line 124 "expl.y" /* yacc.c:1646  */
     {
 			(yyval.tnode_ptr) = TreeCreate(-1, READ, -1, NULL, NULL, (yyvsp[-2].tnode_ptr), NULL, NULL);
 		}
-#line 1419 "y.tab.c" /* yacc.c:1646  */
+#line 1439 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 17:
-#line 108 "expl.y" /* yacc.c:1646  */
+#line 128 "expl.y" /* yacc.c:1646  */
     {
 			(yyval.tnode_ptr) = TreeCreate(-1, WRITE, -1, NULL, NULL, (yyvsp[-2].tnode_ptr), NULL, NULL);
 		}
-#line 1427 "y.tab.c" /* yacc.c:1646  */
+#line 1447 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 18:
-#line 112 "expl.y" /* yacc.c:1646  */
+#line 132 "expl.y" /* yacc.c:1646  */
     {
 			(yyval.tnode_ptr) = TreeCreate(-1, IF, -1, NULL, NULL, (yyvsp[-5].tnode_ptr), (yyvsp[-2].tnode_ptr), NULL);
 		}
-#line 1435 "y.tab.c" /* yacc.c:1646  */
+#line 1455 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 19:
-#line 116 "expl.y" /* yacc.c:1646  */
+#line 136 "expl.y" /* yacc.c:1646  */
     {
 			(yyval.tnode_ptr) = TreeCreate(-1, WHILE, -1, NULL, NULL, (yyvsp[-5].tnode_ptr), (yyvsp[-2].tnode_ptr), NULL);
 		}
-#line 1443 "y.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 20:
-#line 121 "expl.y" /* yacc.c:1646  */
-    {
-		(yyval.tnode_ptr) = makeOperatorNode(PLUS, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr));
-	}
-#line 1451 "y.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 21:
-#line 124 "expl.y" /* yacc.c:1646  */
-    {(yyval.tnode_ptr) = makeOperatorNode(MUL, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr));}
-#line 1457 "y.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 22:
-#line 126 "expl.y" /* yacc.c:1646  */
-    {(yyval.tnode_ptr) = makeOperatorNode(MINUS, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr));}
 #line 1463 "y.tab.c" /* yacc.c:1646  */
     break;
 
-  case 23:
-#line 128 "expl.y" /* yacc.c:1646  */
-    {(yyval.tnode_ptr) = makeOperatorNode(DIV, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr));}
-#line 1469 "y.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 24:
-#line 130 "expl.y" /* yacc.c:1646  */
-    {(yyval.tnode_ptr) = TreeCreate(-1, PARENS, -1, NULL, NULL, (yyvsp[-1].tnode_ptr), NULL, NULL);}
-#line 1475 "y.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 25:
-#line 132 "expl.y" /* yacc.c:1646  */
-    {printf("Found NUM...\n");(yyval.tnode_ptr) = (yyvsp[0].tnode_ptr);}
-#line 1481 "y.tab.c" /* yacc.c:1646  */
-    break;
-
-  case 26:
-#line 134 "expl.y" /* yacc.c:1646  */
+  case 20:
+#line 141 "expl.y" /* yacc.c:1646  */
     {
-    (yyval.tnode_ptr) = (yyvsp[0].tnode_ptr);
-   }
+		(yyval.tnode_ptr) = makeOperatorNode(PLUS, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr));
+	}
+#line 1471 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 21:
+#line 144 "expl.y" /* yacc.c:1646  */
+    {(yyval.tnode_ptr) = makeOperatorNode(MUL, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr));}
+#line 1477 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 22:
+#line 146 "expl.y" /* yacc.c:1646  */
+    {(yyval.tnode_ptr) = makeOperatorNode(MINUS, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr));}
+#line 1483 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 23:
+#line 148 "expl.y" /* yacc.c:1646  */
+    {(yyval.tnode_ptr) = makeOperatorNode(DIV, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr));}
 #line 1489 "y.tab.c" /* yacc.c:1646  */
     break;
 
+  case 24:
+#line 150 "expl.y" /* yacc.c:1646  */
+    {(yyval.tnode_ptr) = TreeCreate(-1, PARENS, -1, NULL, NULL, (yyvsp[-1].tnode_ptr), NULL, NULL);}
+#line 1495 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 25:
+#line 152 "expl.y" /* yacc.c:1646  */
+    {(yyval.tnode_ptr) = (yyvsp[0].tnode_ptr);}
+#line 1501 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 26:
+#line 154 "expl.y" /* yacc.c:1646  */
+    {
+    (yyval.tnode_ptr) = (yyvsp[0].tnode_ptr);
+   }
+#line 1509 "y.tab.c" /* yacc.c:1646  */
+    break;
+
   case 27:
-#line 138 "expl.y" /* yacc.c:1646  */
+#line 158 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(LT, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr));
 	 }
-#line 1497 "y.tab.c" /* yacc.c:1646  */
+#line 1517 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 28:
-#line 142 "expl.y" /* yacc.c:1646  */
+#line 162 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(GT, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr));
 	 }
-#line 1505 "y.tab.c" /* yacc.c:1646  */
+#line 1525 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 29:
-#line 146 "expl.y" /* yacc.c:1646  */
+#line 166 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(EQ, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr));
 	 }
-#line 1513 "y.tab.c" /* yacc.c:1646  */
+#line 1533 "y.tab.c" /* yacc.c:1646  */
     break;
 
 
-#line 1517 "y.tab.c" /* yacc.c:1646  */
+#line 1537 "y.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1741,7 +1761,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 151 "expl.y" /* yacc.c:1906  */
+#line 171 "expl.y" /* yacc.c:1906  */
 
 
 yyerror(char const *s)
@@ -1758,5 +1778,15 @@ int main(int argc, char *argv[]) {
         	yyin = fp;
 	}
 	yyparse();
+
+	// deallocate memory used in symbol table
+	struct Gsymbol *temp = global_symbol_table_start;
+
+	while (temp != NULL) {
+		global_symbol_table_start = global_symbol_table_start -> NEXT;
+		free(temp);
+		temp = global_symbol_table_start;
+	}
+
 	return 0;
 }

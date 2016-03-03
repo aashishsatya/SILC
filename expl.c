@@ -43,12 +43,15 @@ struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct T
   return temp;
 }
 
+// TODO: Sometimes you may need to write a get_location() function.
+
 int evaluate(struct Tnode *t){
     //printf("Starting evaluate...\n");
     struct Tnode *id_to_assign = NULL;  // in case we need to get the name of the variable to work on
     struct Tnode *next_arg;
     struct Gsymbol *id_entry; // to store the pointer to the entry in the symbol table
     int truth_value;  // for if and while
+    int value_to_write;
     char *id_name; // this variable will store the name of the ID obtained from id_to_assign
     if (t == NULL) {
       //printf("t is NULL\n");
@@ -99,10 +102,10 @@ int evaluate(struct Tnode *t){
       case ID:
         // if we call evaluate on ID, if ID was not previously assigned a value the program will raise an error
         // so we must do at least the LHS part of the operation here
-        id_to_assign = t -> Ptr1;  // this will obviously be an ID
+        // id_to_assign = t -> Ptr1;  // this will obviously be an ID
         // its name will be stored in NAME field
         // allocate memory accordingly
-        id_name = id_to_assign -> NAME; // [0] because NAME is a pointer
+        id_name = t -> NAME; // [0] because NAME is a pointer
         // look up the symbol in the symbol table
         id_entry = Glookup(id_name);
         if (id_entry == NULL) {
@@ -135,24 +138,18 @@ int evaluate(struct Tnode *t){
           printf("Identifier was not declared, exiting...\n");
           exit(0);
         }
+        // allocate memory for BINDING field of id_entry
+        id_entry -> BINDING = (int *) malloc (sizeof(int));
         scanf("%d", id_entry -> BINDING);
         return -1;
       case WRITE:
         // do the writing
         // find the name of the variable
-        id_to_assign = t -> Ptr1;  // this will obviously be an ID
-        // its name will be stored in NAME field
-        // allocate memory accordingly
-        id_name = id_to_assign -> NAME; // [0] because NAME is a pointer
-        // look up the symbol in the symbol table
-        id_entry = Glookup(id_name);
-        if (id_entry == NULL) {
-          // entry was not defined
-          // error
-          printf("Identifier was not declared, exiting...\n");
-          exit(0);
-        }
-        printf("%d\n", *(id_entry -> BINDING));
+        id_to_assign = t -> Ptr1;
+        // this will obviously be something evaluatable
+        // because we can have statements like write(a + b + c);
+        value_to_write = evaluate(id_to_assign);
+        printf("%d\n", value_to_write);
         return -1;
       case NODETYPE_SLIST:
         //printf("Evaluating first arg...\n");
