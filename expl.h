@@ -2,6 +2,7 @@
 #define VAR_TYPE_BOOL_ARR 1
 #define VAR_TYPE_INT 2
 #define VAR_TYPE_INT_ARR 3
+#define VAR_TYPE_VOID 4
 
 struct Tnode {
 

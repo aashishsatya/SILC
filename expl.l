@@ -35,18 +35,16 @@ NL 	[\n]
 "boolean" {return BOOL;}
 
 [a-z][a-zA-Z0-9]* {
-	//char variable_name = yytext[0];
-	char *variable_name = (char *) malloc (50 * sizeof(yytext));
 
+	char *variable_name = (char *) malloc (50 * sizeof(yytext));
 	strcpy(variable_name, yytext);
-	//printf("Vbl name: %c\n", variable_name[0]);
-	yylval.tnode_ptr = TreeCreate(-1, ID, -1, variable_name);
-	//printf("Returning ID...\n");
-	//printf("Saw value %d", value);
-	//yylval.tnode_ptr = value;
-	//printf("Reading back\n");
-	//char *id_name_ptr = yylval.tnode_ptr->NAME;
-	//printf("%c\n", id_name_ptr[0]);
+
+	// note no information if it is an array or anything has been stored
+	// you don't even know if the ID that is being referenced is an array and
+	// the programmer is asking for a particular index
+	// that has to be taken care of by the expl.y file
+	yylval.tnode_ptr = TreeCreate(-1, ID, -1, variable_name, NULL, NULL, NULL, NULL);
+
 	return ID;
 }
 
@@ -58,9 +56,9 @@ NL 	[\n]
 ">" {return GT;}
 "==" {return EQ;}
 [=]  {return ASGN;}
-[();]	{return *yytext;}
+[();\[\],]	{return *yytext;}
 
-.	{yyerror("unknown character\n");exit(1);}
+.	{printf("The unknown character is: %s\n", yytext);yyerror("unknown character\n");exit(1);}
 
 %%
 

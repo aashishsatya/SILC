@@ -79,7 +79,12 @@ type: INT {variable_type = VAR_TYPE_INT;}
 dec: type id_list ';' {}
 
 id_list:	id_list ',' ID	{
+		//printf("%s installed as standalone variable\n", $3 -> NAME);
 		Ginstall($3 -> NAME, variable_type, 1, NULL);
+		struct Gsymbol *temp = Glookup($3 -> NAME);
+		if (temp != NULL) {
+			//printf("Installation confirmed...\n");
+		}
 	}
 
 	| id_list ',' ID '[' NUM ']' {
@@ -88,17 +93,24 @@ id_list:	id_list ',' ID	{
 				// so the variable is of type integer
 				// but it's an array
 				// so install it as such
+				variable_type = VAR_TYPE_INT_ARR;
 				Ginstall($3 -> NAME, VAR_TYPE_INT_ARR, $5 -> VALUE, NULL);
 				break;
 			case VAR_TYPE_BOOL:
 				// ditto
-				Ginstall($3 -> NAME, VAR_TYPE_INT_ARR, $5 -> VALUE, NULL);
+				variable_type = VAR_TYPE_INT_ARR;
+				Ginstall($3 -> NAME, VAR_TYPE_BOOL_ARR, $5 -> VALUE, NULL);
 				break;
 		}
 	}
 
 	|	ID {
 		Ginstall($1 -> NAME, variable_type, 1, NULL);
+		//printf("%s installed as standalone variable\n", $1 -> NAME);
+		struct Gsymbol *temp = Glookup($1 -> NAME);
+		if (temp != NULL) {
+			//printf("Installation confirmed...\n");
+		}
 	}
 
 	| ID '[' NUM ']' {
@@ -107,22 +119,43 @@ id_list:	id_list ',' ID	{
 				// so the variable is of type integer
 				// but it's an array
 				// so install it as such
+				variable_type = VAR_TYPE_INT_ARR;
 				Ginstall($1 -> NAME, VAR_TYPE_INT_ARR, $3 -> VALUE, NULL);
 				break;
 			case VAR_TYPE_BOOL:
 				// ditto
-				Ginstall($1 -> NAME, VAR_TYPE_INT_ARR, $3 -> VALUE, NULL);
+				variable_type = VAR_TYPE_BOOL_ARR;
+				Ginstall($1 -> NAME, VAR_TYPE_BOOL_ARR, $3 -> VALUE, NULL);
 				break;
 		}
+		////printf("%s installed as array\n", $1 -> NAME);
 	}
 	;
 
 stmt: ID ASGN expr ';'	{
+			////printf("Making ID node for %s\n", $1 -> NAME);
 			$$ = TreeCreate(-1, ASGN, -1, NULL, NULL, $1, $3, NULL);
+		}
+
+		| ID '[' expr ']' ASGN expr ';' {
+			struct Tnode *new_id_node = TreeCreate(-1, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL);
+			////printf("Making ID array node\n");
+			$$ = TreeCreate(-1, ASGN, -1, NULL, NULL, new_id_node, $6, NULL);
 		}
 
 		| READ '(' ID ')' ';'	{
 			$$ = TreeCreate(-1, READ, -1, NULL, NULL, $3, NULL, NULL);
+		}
+
+		| READ '(' ID '[' expr ']' ')' ';'	{
+
+			// this is READ for arrays
+			// reason why you can't have READ(expr) (similar to WRITE below)
+			// is because READ can ONLY read into variables.
+			// any statements of the form read(a + b + c) (which is an expr) is
+			// wrong, but write(a + b + c works)
+			struct Tnode *new_id_node = TreeCreate(-1, ID, -1, $3 -> NAME, NULL, $5, NULL, NULL);
+			$$ = TreeCreate(-1, READ, -1, NULL, NULL, new_id_node, NULL, NULL);
 		}
 
 		| WRITE '(' expr ')' ';' {
@@ -155,6 +188,13 @@ expr: expr PLUS expr	{
     $$ = $1;
    }
 
+	 | ID '[' expr ']' {
+		 // can be referencing an array
+		 ////printf("ID given array\n");
+		 ////printf("name = %s\n", $1 -> NAME);
+		 $$ = TreeCreate(-1, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL);
+	 }
+
 	 | expr LT expr {
 		 $$ = makeOperatorNode(LT, $1, $3);
 	 }
@@ -172,7 +212,7 @@ expr: expr PLUS expr	{
 
 yyerror(char const *s)
 {
-    printf("yyerror %s",s);
+    ////printf("yyerror %s",s);
 }
 
 

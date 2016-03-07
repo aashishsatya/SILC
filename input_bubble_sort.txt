@@ -1,0 +1,32 @@
+decl
+  integer a[10];
+  integer i;
+  integer j;
+  integer n;
+  integer temp;
+enddecl
+
+read(n);
+i = 0;
+while (i < n) do
+  read(a[i]);
+  i = i + 1;
+endwhile;
+i=0;
+while(i<n) do
+  j=1;
+	while(j<n) do
+		if(a[j]<a[j-1]) then
+			temp = a[j];
+			a[j] = a[j-1];
+			a[j-1] = temp;
+		endif;
+		j=j+1;
+	endwhile;
+	i=i+1;
+endwhile;
+i = 0;
+while (i < n) do
+  write(a[i]);
+  i = i + 1;
+endwhile;

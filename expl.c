@@ -51,10 +51,11 @@ int evaluate(struct Tnode *t){
     struct Tnode *next_arg;
     struct Gsymbol *id_entry; // to store the pointer to the entry in the symbol table
     int truth_value;  // for if and while
+    int array_index;  // if an array is being used
     int value_to_write;
     char *id_name; // this variable will store the name of the ID obtained from id_to_assign
-    if (t == NULL) {
-      //printf("t is NULL\n");
+    if (t != NULL) {
+      //printf("t is not NULL\n");
       int t_nodetype = t -> NODETYPE;
       //printf("t->NODETYPE = %d\n", t_nodetype);
     }
@@ -77,6 +78,7 @@ int evaluate(struct Tnode *t){
         // nothing to do, simply return its value
         return t -> VALUE;
       case ASGN:
+        //printf("In ASGN...\n");
         // careful here
         // if we call evaluate on ID, if ID was not previously assigned a value the program will raise an error
         // so we must do at least the LHS part of the operation here
@@ -85,27 +87,46 @@ int evaluate(struct Tnode *t){
         // allocate memory accordingly
         id_name = id_to_assign -> NAME; // [0] because NAME is a pointer
         // look up the symbol in the symbol table
+        //printf("Looking up %s in the symbol table...\n", id_name);
         id_entry = Glookup(id_name);
+        //printf("Done looking up %s.\n", id_name);
         if (id_entry == NULL) {
           // entry was not defined
           // error
-          printf("Identifier was not declared, exiting...\n");
+          printf("Identifier %s was not declared, exiting...\n", id_name);
           exit(0);
         }
+        //printf("Identified ID...\n");
         // we have a proper ID
-        // assign the value to this ID
-        *(id_entry -> BINDING) = evaluate(t -> Ptr2);
+        // check if ID is an array
+        // this can be done by checking t -> Ptr1 of id_to_assign
+        // if it is NULL, then ID is not an array
+        // else it is
+        if (id_to_assign -> Ptr1 == NULL) {
+          //printf("Not an array\n");
+          // assign the value to this ID
+          *(id_entry -> BINDING) = evaluate(t -> Ptr2);
+        }
+        else {
+          //printf("id_to_assign -> Ptr1 = %p\n", id_to_assign -> Ptr1);
+          // ID is an array
+          //printf("%s is an array.\n", id_name);
+          array_index = evaluate(id_to_assign -> Ptr1);
+          //printf("array index = %d\n", array_index);
+          *(id_entry -> BINDING + array_index) = evaluate(t -> Ptr2);
+        }
         // just return something, doesn't matter what it is
         // point is, C can return any value, you just have to make sure that *SILC* doesn't.
         //printf("Returning from ASGN...\n");
         return -1;
       case ID:
+        //printf("In ID...\n");
         // if we call evaluate on ID, if ID was not previously assigned a value the program will raise an error
         // so we must do at least the LHS part of the operation here
         // id_to_assign = t -> Ptr1;  // this will obviously be an ID
         // its name will be stored in NAME field
         // allocate memory accordingly
-        id_name = t -> NAME; // [0] because NAME is a pointer
+        id_name = t -> NAME;
         // look up the symbol in the symbol table
         id_entry = Glookup(id_name);
         if (id_entry == NULL) {
@@ -119,11 +140,19 @@ int evaluate(struct Tnode *t){
         // 2) when assigning a value, e.g. price = 500
         // we are assured that at least memory for the variable has been allocated
         // so just return whatever's in the memory and let the caller take care of the rest
-        return *(id_entry -> BINDING);
+        if (t -> Ptr1 == NULL)
+          // assign the value to this ID
+          return *(id_entry -> BINDING);
+        else {
+          // ID is an array
+          array_index = evaluate(t -> Ptr1);
+          return *(id_entry -> BINDING + array_index);
+        }
       case PARENS:
         // again, nothing to do, just evaluate its parameter
         return evaluate(t -> Ptr1);
       case READ:
+        //printf("In READ...\n");
         // do the actual reading
         // find the name of the variable
         id_to_assign = t -> Ptr1;  // this will obviously be an ID
@@ -138,17 +167,29 @@ int evaluate(struct Tnode *t){
           printf("Identifier was not declared, exiting...\n");
           exit(0);
         }
-        // allocate memory for BINDING field of id_entry
-        id_entry -> BINDING = (int *) malloc (sizeof(int));
-        scanf("%d", id_entry -> BINDING);
+        //printf("Identified variable.\n");
+        if (id_to_assign -> Ptr1 == NULL) {
+          // assign the value to this ID
+          scanf("%d", id_entry -> BINDING);
+        }
+        else {
+          // ID is an array
+          array_index = evaluate(id_to_assign -> Ptr1);
+          //printf("Array index = %d\n", array_index);
+          scanf("%d", id_entry -> BINDING + array_index);
+        }
+        //printf("Done with READ.\n");
         return -1;
       case WRITE:
+        //printf("In WRITE...\n");
         // do the writing
         // find the name of the variable
         id_to_assign = t -> Ptr1;
         // this will obviously be something evaluatable
         // because we can have statements like write(a + b + c);
+        //printf("Evaluating WRITE's argument...\n");
         value_to_write = evaluate(id_to_assign);
+        //printf("Done evaluating WRITE arg.\n");
         printf("%d\n", value_to_write);
         return -1;
       case NODETYPE_SLIST:
@@ -184,15 +225,31 @@ struct Gsymbol *Glookup(char *NAME) // Look up for a global identifier
 {
     struct Gsymbol *temp = global_symbol_table_start;
     while (temp != NULL) {
-      if (strcmp(temp -> NAME, NAME) == 0)
+      //printf("Saw %s, moving on\n", temp -> NAME);
+      if (strcmp(temp -> NAME, NAME) == 0) {
+        //printf("(hit)\n");
         return temp;
+      }
+      temp = temp -> NEXT;
     }
     return temp;
 }
 
 void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Installation
 {
-  struct Gsymbol *new_entry = (struct Gsymbol *) malloc(sizeof(struct Gsymbol));
+
+  // check if the variable name has already been used
+  struct Gsymbol *new_entry = Glookup(NAME);
+  if (new_entry != NULL) {
+    // variable has already been declared
+    // exit with error
+    printf("Variable %s has already been declared, exiting.\n", NAME);
+    exit(0);
+  }
+
+  // continue with allocation
+  
+  new_entry = (struct Gsymbol *) malloc(sizeof(struct Gsymbol));
   new_entry -> NAME = NAME;
   new_entry -> TYPE = TYPE;
   new_entry -> SIZE = SIZE;
@@ -212,6 +269,8 @@ void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Inst
     global_symbol_table_end = new_entry;
     global_symbol_table_start = new_entry;
   }
-  else
+  else {
     global_symbol_table_end -> NEXT = new_entry;
+    global_symbol_table_end = new_entry;
+  }
 }

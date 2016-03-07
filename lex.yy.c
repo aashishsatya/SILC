@@ -395,12 +395,12 @@ static yyconst flex_int32_t yy_ec[256] =
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    2,    1,    1,    1,    1,    1,    1,    1,    4,
-        4,    5,    6,    1,    7,    1,    8,    9,    9,    9,
+        4,    5,    6,    4,    7,    1,    8,    9,    9,    9,
         9,    9,    9,    9,    9,    9,    9,    1,    4,   10,
        11,   12,    1,    1,   13,   13,   13,   13,   13,   13,
        13,   13,   13,   13,   13,   13,   13,   13,   13,   13,
        13,   13,   13,   13,   13,   13,   13,   13,   13,   13,
-        1,    1,    1,    1,    1,    1,   14,   15,   16,   17,
+        4,    1,    4,    1,    1,    1,   14,   15,   16,   17,
 
        18,   19,   20,   21,   22,   23,   23,   24,   23,   25,
        26,   23,   23,   27,   23,   28,   23,   23,   29,   23,
@@ -866,77 +866,75 @@ case 16:
 YY_RULE_SETUP
 #line 37 "expl.l"
 {
-	//char variable_name = yytext[0];
-	char *variable_name = (char *) malloc (50 * sizeof(yytext));
 
+	char *variable_name = (char *) malloc (50 * sizeof(yytext));
 	strcpy(variable_name, yytext);
-	//printf("Vbl name: %c\n", variable_name[0]);
-	yylval.tnode_ptr = TreeCreate(-1, ID, -1, variable_name);
-	//printf("Returning ID...\n");
-	//printf("Saw value %d", value);
-	//yylval.tnode_ptr = value;
-	//printf("Reading back\n");
-	//char *id_name_ptr = yylval.tnode_ptr->NAME;
-	//printf("%c\n", id_name_ptr[0]);
+
+	// note no information if it is an array or anything has been stored
+	// you don't even know if the ID that is being referenced is an array and
+	// the programmer is asking for a particular index
+	// that has to be taken care of by the expl.y file
+	yylval.tnode_ptr = TreeCreate(-1, ID, -1, variable_name, NULL, NULL, NULL, NULL);
+
 	return ID;
 }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 53 "expl.l"
+#line 51 "expl.l"
 {return MINUS;}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 54 "expl.l"
+#line 52 "expl.l"
 {return PLUS;}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 55 "expl.l"
+#line 53 "expl.l"
 {return MUL;}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 56 "expl.l"
+#line 54 "expl.l"
 {return DIV;}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 57 "expl.l"
+#line 55 "expl.l"
 {return LT;}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 58 "expl.l"
+#line 56 "expl.l"
 {return GT;}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 59 "expl.l"
+#line 57 "expl.l"
 {return EQ;}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 60 "expl.l"
+#line 58 "expl.l"
 {return ASGN;}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 61 "expl.l"
+#line 59 "expl.l"
 {return *yytext;}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 63 "expl.l"
-{yyerror("unknown character\n");exit(1);}
+#line 61 "expl.l"
+{printf("The unknown character is: %s\n", yytext);yyerror("unknown character\n");exit(1);}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 65 "expl.l"
+#line 63 "expl.l"
 ECHO;
 	YY_BREAK
-#line 940 "lex.yy.c"
+#line 938 "lex.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -1932,7 +1930,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 65 "expl.l"
+#line 63 "expl.l"
 
 
 
