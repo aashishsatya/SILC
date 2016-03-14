@@ -5,6 +5,8 @@
 
 int *var[26];
 
+FILE *fp = NULL;  // this file pointer will be used for writing the intermediate code to a file
+
 // this one is to be used just to make a node (and not variables)
 /*struct Tnode* makeLeafNode(int n){
     struct Tnode *temp;
@@ -69,8 +71,6 @@ struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct T
   return temp;
 }
 
-// TODO: Sometimes you may need to write a get_location() function.
-
 int evaluate(struct Tnode *t) {
     //printf("Starting evaluate...\n");
     struct Tnode *id_to_assign = NULL;  // in case we need to get the name of the variable to work on
@@ -80,11 +80,7 @@ int evaluate(struct Tnode *t) {
     int array_index;  // if an array is being used
     int value_to_write;
     char *id_name; // this variable will store the name of the ID obtained from id_to_assign
-    if (t != NULL) {
-      //printf("t is not NULL\n");
-      int t_nodetype = t -> NODETYPE;
-      //printf("t->NODETYPE = %d\n", t_nodetype);
-    }
+    
     switch (t -> NODETYPE) {
       case PLUS:
         return evaluate(t -> Ptr1) + evaluate(t -> Ptr2);
@@ -264,6 +260,8 @@ struct Gsymbol *Glookup(char *NAME) // Look up for a global identifier
     return temp;
 }
 
+int sim_binding = 0;  // this variable will denote the next FREE memory location
+
 void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Installation
 {
 
@@ -291,6 +289,8 @@ void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Inst
 
   int *int_space = (int *) malloc(sizeof(int) * SIZE);
   new_entry -> BINDING = int_space;
+  new_entry -> SIM_BINDING = sim_binding;
+  sim_binding += SIZE;
 
   // update the last entry of the symbol table to point to this new entry
   if (global_symbol_table_end == NULL) {
