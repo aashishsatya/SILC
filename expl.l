@@ -2,6 +2,7 @@
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include "y.tab.h"
+	#include "expl.h"
 %}
 
 whitespaces [ \t]
@@ -16,7 +17,7 @@ NL 	[\n]
 [0-9]+  {
 	//printf("ID'ed NUM, working...\n");
 	//printf("Value of NUM = %d\n", atoi(yytext));
-	yylval.tnode_ptr = TreeCreate(-1, NUM, atoi(yytext));
+	yylval.tnode_ptr = TreeCreate(VAR_TYPE_INT, NUM, atoi(yytext), NULL, NULL, NULL, NULL, NULL);
 	//printf("Created a node for NUM...\n");
 	return NUM;
 }
@@ -33,6 +34,8 @@ NL 	[\n]
 "enddecl" {return ENDDECL;}
 "integer" {return INT;}
 "boolean" {return BOOL;}
+"begin" {return BEGINNING;}
+"end" {return END;}
 
 [a-z][a-zA-Z0-9]* {
 

@@ -68,7 +68,9 @@ extern int yydebug;
     ENDDECL = 278,
     BOOL = 279,
     INT = 280,
-    ENDOFFILE = 281
+    ENDOFFILE = 281,
+    BEGINNING = 282,
+    END = 283
   };
 #endif
 /* Tokens.  */
@@ -96,6 +98,8 @@ extern int yydebug;
 #define BOOL 279
 #define INT 280
 #define ENDOFFILE 281
+#define BEGINNING 282
+#define END 283
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -107,7 +111,7 @@ union YYSTYPE
 	int int_val;
 	struct  Tnode *tnode_ptr;
 
-#line 111 "y.tab.h" /* yacc.c:1909  */
+#line 115 "y.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

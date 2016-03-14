@@ -12,9 +12,35 @@ int *var[26];
     return temp;
 }*/
 
-struct Tnode* makeOperatorNode(int c, struct Tnode *l, struct Tnode *r){
+struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r) {
     struct Tnode *temp;
-    temp = TreeCreate(-1, c, -1, NULL, NULL, l, r, NULL);
+    // no matter what the type of the operator pointers l and r must have -> TYPE as INT
+    switch(OPERATOR) {
+      case PLUS:
+      case MINUS:
+      case MUL:
+      case DIV:
+        //printf("l -> TYPE = %d\n", l -> TYPE);
+        //printf("r -> TYPE = %d\n", r -> TYPE);
+        if (l -> TYPE != VAR_TYPE_INT || r -> TYPE != VAR_TYPE_INT) {
+          printf("Incorrect operand type for arithmetic operator, exiting.");
+          exit(0);
+        }
+        temp = TreeCreate(VAR_TYPE_INT, OPERATOR, -1, NULL, NULL, l, r, NULL);
+        break;
+      case LT:
+      case GT:
+      case EQ:
+        if (l -> TYPE != VAR_TYPE_INT || r -> TYPE != VAR_TYPE_INT) {
+          printf("Incorrect operand type for logical operator, exiting.");
+          exit(0);
+        }
+        temp = TreeCreate(VAR_TYPE_BOOL, OPERATOR, -1, NULL, NULL, l, r, NULL);
+        break;
+      default:
+        printf("Unrecognized operator, exiting.\n");
+        exit(0);
+    }
     return temp;
 }
 
@@ -45,7 +71,7 @@ struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct T
 
 // TODO: Sometimes you may need to write a get_location() function.
 
-int evaluate(struct Tnode *t){
+int evaluate(struct Tnode *t) {
     //printf("Starting evaluate...\n");
     struct Tnode *id_to_assign = NULL;  // in case we need to get the name of the variable to work on
     struct Tnode *next_arg;
@@ -221,6 +247,9 @@ int evaluate(struct Tnode *t){
     }
 }
 
+struct Gsymbol *global_symbol_table_start = NULL;
+struct Gsymbol *global_symbol_table_end = NULL;  // for easier appending
+
 struct Gsymbol *Glookup(char *NAME) // Look up for a global identifier
 {
     struct Gsymbol *temp = global_symbol_table_start;
@@ -248,7 +277,7 @@ void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Inst
   }
 
   // continue with allocation
-  
+
   new_entry = (struct Gsymbol *) malloc(sizeof(struct Gsymbol));
   new_entry -> NAME = NAME;
   new_entry -> TYPE = TYPE;
@@ -273,4 +302,30 @@ void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Inst
     global_symbol_table_end -> NEXT = new_entry;
     global_symbol_table_end = new_entry;
   }
+}
+
+int find_id_type(struct Tnode *ptr) {
+  struct Gsymbol *temp = Glookup(ptr -> NAME);
+  int id_type;
+  switch (temp -> TYPE) {
+    case VAR_TYPE_INT_ARR:
+    case VAR_TYPE_INT:
+      // check if the given ID is for an array type variable
+      if (temp -> SIZE > 1) {
+        id_type = VAR_TYPE_INT_ARR;
+      }
+      else
+        id_type = VAR_TYPE_INT;
+      break;
+    case VAR_TYPE_BOOL_ARR:
+    case VAR_TYPE_BOOL:
+      // check if the given ID is for an array type variable
+      if (temp -> SIZE > 1) {
+        id_type = VAR_TYPE_BOOL_ARR;
+      }
+      else
+        id_type = VAR_TYPE_BOOL;
+      break;
+  }
+  return id_type;
 }

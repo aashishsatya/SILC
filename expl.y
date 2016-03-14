@@ -17,7 +17,7 @@
 	struct  Tnode *tnode_ptr;
 }
 
-%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE
+%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE BEGINNING END
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -43,6 +43,8 @@
 %type <tnode_ptr> THEN;
 %type <tnode_ptr> DECL;
 %type <tnode_ptr> ENDDECL;
+%type <tnode_ptr> BEGINNING;
+%type <tnode_ptr> END;
 %type <tnode_ptr> INT;
 %type <tnode_ptr> BOOL;
 %type <tnode_ptr> declarations;
@@ -54,8 +56,8 @@
 
 %%
 
-start: declarations slist ENDOFFILE	{
-		evaluate($2);	// evaluate statements
+start: declarations BEGINNING slist END ENDOFFILE	{
+		evaluate($3);	// evaluate statements
 		exit(1);
 	}
 	;
@@ -79,7 +81,7 @@ type: INT {variable_type = VAR_TYPE_INT;}
 dec: type id_list ';' {}
 
 id_list:	id_list ',' ID	{
-		//printf("%s installed as standalone variable\n", $3 -> NAME);
+		//printf("%s installed as %d\n", $3 -> NAME, variable_type);
 		Ginstall($3 -> NAME, variable_type, 1, NULL);
 		struct Gsymbol *temp = Glookup($3 -> NAME);
 		if (temp != NULL) {
@@ -93,12 +95,10 @@ id_list:	id_list ',' ID	{
 				// so the variable is of type integer
 				// but it's an array
 				// so install it as such
-				variable_type = VAR_TYPE_INT_ARR;
 				Ginstall($3 -> NAME, VAR_TYPE_INT_ARR, $5 -> VALUE, NULL);
 				break;
 			case VAR_TYPE_BOOL:
 				// ditto
-				variable_type = VAR_TYPE_INT_ARR;
 				Ginstall($3 -> NAME, VAR_TYPE_BOOL_ARR, $5 -> VALUE, NULL);
 				break;
 		}
@@ -119,55 +119,102 @@ id_list:	id_list ',' ID	{
 				// so the variable is of type integer
 				// but it's an array
 				// so install it as such
-				variable_type = VAR_TYPE_INT_ARR;
+				//variable_type = VAR_TYPE_INT_ARR;
 				Ginstall($1 -> NAME, VAR_TYPE_INT_ARR, $3 -> VALUE, NULL);
 				break;
 			case VAR_TYPE_BOOL:
 				// ditto
-				variable_type = VAR_TYPE_BOOL_ARR;
+				//variable_type = VAR_TYPE_BOOL_ARR;
 				Ginstall($1 -> NAME, VAR_TYPE_BOOL_ARR, $3 -> VALUE, NULL);
 				break;
 		}
-		////printf("%s installed as array\n", $1 -> NAME);
+		//printf("%s installed as array\n", $1 -> NAME);
 	}
 	;
 
 stmt: ID ASGN expr ';'	{
-			////printf("Making ID node for %s\n", $1 -> NAME);
-			$$ = TreeCreate(-1, ASGN, -1, NULL, NULL, $1, $3, NULL);
+			//printf("Making ID node for %s\n", $1 -> NAME);
+			$1 -> TYPE = find_id_type($1);
+			//printf("id type = %d\n", $1 -> TYPE);
+			//printf("expr type = %d\n", $3 -> TYPE);
+			if ($1 -> TYPE != $3 -> TYPE) {
+				printf("Inconsistent types for assignment; exiting.\n");
+				exit(0);
+			}
+			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, NULL, $1, $3, NULL);
 		}
 
 		| ID '[' expr ']' ASGN expr ';' {
-			struct Tnode *new_id_node = TreeCreate(-1, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL);
+			$1 -> TYPE = find_id_type($1);
+			if ($1 -> TYPE != VAR_TYPE_INT_ARR && $1 -> TYPE != VAR_TYPE_BOOL_ARR) {
+				printf("Trying to index into a non-array variable %s of type %d; exiting.\n", $1 -> NAME, $1 -> TYPE);
+				exit(0);
+			}
+			// means ID is array alright
+			// now we just have to check if expr is compatible with ID
+			if (($1 -> TYPE == VAR_TYPE_INT_ARR && $6 -> TYPE == VAR_TYPE_BOOL) || ($1 -> TYPE == VAR_TYPE_BOOL_ARR && $6 -> TYPE == VAR_TYPE_INT)) {
+				printf("Inconsistent types for assignment; exiting.\n");
+				exit(0);
+			}
+			struct Tnode *new_id_node = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL);
 			////printf("Making ID array node\n");
-			$$ = TreeCreate(-1, ASGN, -1, NULL, NULL, new_id_node, $6, NULL);
+			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, NULL, new_id_node, $6, NULL);
 		}
 
 		| READ '(' ID ')' ';'	{
-			$$ = TreeCreate(-1, READ, -1, NULL, NULL, $3, NULL, NULL);
+			$3 -> TYPE = find_id_type($3);
+			//printf("id type = %d\n", $3 -> TYPE);
+			if ($3 -> TYPE != VAR_TYPE_INT) {
+ 			 printf("READ variable is of incorrect type; exiting.\n");
+ 			 exit(0);
+ 		  }
+			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, NULL, $3, NULL, NULL);
 		}
 
 		| READ '(' ID '[' expr ']' ')' ';'	{
-
+			$3 -> TYPE = find_id_type($3);
+			//printf("id type read = %d\n", $3 -> TYPE);
 			// this is READ for arrays
 			// reason why you can't have READ(expr) (similar to WRITE below)
-			// is because READ can ONLY read into variables.
+			// is because READ can only read into VARIABLES (and not expressions).
 			// any statements of the form read(a + b + c) (which is an expr) is
-			// wrong, but write(a + b + c works)
+			// wrong, but write(a + b + c) works
+
+			// but before all that check the type of variables
+			if ($3 -> TYPE != VAR_TYPE_INT_ARR) {
+				printf("Incorrect array type for READ statement; exiting.\n");
+				exit(0);
+			}
+			if ($5 -> TYPE != VAR_TYPE_INT) {
+				printf("Incorrect index type for array; exiting.\n");
+				exit(0);
+			}
 			struct Tnode *new_id_node = TreeCreate(-1, ID, -1, $3 -> NAME, NULL, $5, NULL, NULL);
-			$$ = TreeCreate(-1, READ, -1, NULL, NULL, new_id_node, NULL, NULL);
+			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, NULL, new_id_node, NULL, NULL);
 		}
 
 		| WRITE '(' expr ')' ';' {
-			$$ = TreeCreate(-1, WRITE, -1, NULL, NULL, $3, NULL, NULL);
+			if ($3 -> TYPE != VAR_TYPE_INT) {
+ 			 printf("WRITE variable is of incorrect type; exiting.\n");
+ 			 exit(0);
+ 		  }
+			$$ = TreeCreate(VAR_TYPE_VOID, WRITE, -1, NULL, NULL, $3, NULL, NULL);
 		}
 
 		| IF '(' expr ')' THEN slist ENDIF ';' {
-			$$ = TreeCreate(-1, IF, -1, NULL, NULL, $3, $6, NULL);
+			if ($3 -> TYPE != VAR_TYPE_BOOL) {
+ 			 printf("Incorrect type for if condition statement; exiting.\n");
+ 			 exit(0);
+ 		  }
+			$$ = TreeCreate(VAR_TYPE_VOID, IF, -1, NULL, NULL, $3, $6, NULL);
 		}
 
 		| WHILE '(' expr ')' DO slist ENDWHILE ';' {
-			$$ = TreeCreate(-1, WHILE, -1, NULL, NULL, $3, $6, NULL);
+			if ($3 -> TYPE != VAR_TYPE_BOOL) {
+ 			 printf("Incorrect type for while loop condition; exiting.\n");
+ 			 exit(0);
+ 		  }
+			$$ = TreeCreate(VAR_TYPE_VOID, WHILE, -1, NULL, NULL, $3, $6, NULL);
 		}
 		;
 
@@ -180,19 +227,37 @@ expr: expr PLUS expr	{
 
 	 | expr DIV expr	{$$ = makeOperatorNode(DIV, $1, $3);}
 
-	 | '(' expr ')'		{$$ = TreeCreate(-1, PARENS, -1, NULL, NULL, $2, NULL, NULL);}
+	 | '(' expr ')'		{$$ = TreeCreate($2 -> TYPE, PARENS, -1, NULL, NULL, $2, NULL, NULL);}
 
 	 | NUM			{$$ = $1;}
 
 	 | ID {
+		// since it can be assumed that this variable would already exist,
+		// we can look it up and assign its type to it
+		$1 -> TYPE = find_id_type($1);
     $$ = $1;
    }
 
 	 | ID '[' expr ']' {
 		 // can be referencing an array
-		 ////printf("ID given array\n");
-		 ////printf("name = %s\n", $1 -> NAME);
-		 $$ = TreeCreate(-1, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL);
+		 //printf("ID given array\n");
+		 //printf("name = %s\n", $1 -> NAME);
+		 $1 -> TYPE = find_id_type($1);
+		 if ($3 -> TYPE != VAR_TYPE_INT) {
+			 printf("Incorrect type for array index; exiting.\n");
+			 exit(0);
+		 }
+		 switch($1 -> TYPE) {
+			 case VAR_TYPE_INT_ARR:
+			 	$$ = TreeCreate(VAR_TYPE_INT, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL);
+				break;
+			 case VAR_TYPE_BOOL_ARR:
+			 	$$ = TreeCreate(VAR_TYPE_BOOL, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL);
+				break;
+			 default:
+			  printf("Trying to index into a non-array variable %s; exiting.\n", $1 -> NAME);
+			  exit(0);
+		 }
 	 }
 
 	 | expr LT expr {
@@ -212,7 +277,7 @@ expr: expr PLUS expr	{
 
 yyerror(char const *s)
 {
-    ////printf("yyerror %s",s);
+    printf("yyerror %s",s);
 }
 
 
