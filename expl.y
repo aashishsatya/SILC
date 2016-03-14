@@ -2,8 +2,8 @@
 	#include <stdio.h>
 	#include <stdlib.h>
 
-	#include "expl.c"
 	#include "y.tab.h"
+	#include "codegenfunc.c"
 
 	int yylex(void);
 	extern FILE *yyin;
@@ -57,7 +57,28 @@
 %%
 
 start: declarations BEGINNING slist END ENDOFFILE	{
-		evaluate($3);	// evaluate statements
+
+		fp = NULL;
+		fp = fopen("intermediate_code", "w+");
+		if (fp == NULL) {
+			printf("Error opening file, exiting");
+		}
+
+		fprintf(fp, "START\n");
+		code_gen($3);	// generate the intermediate code
+		fprintf(fp, "HALT\n");
+
+		fclose(fp);
+
+		// deallocate memory used in symbol table
+
+		struct Gsymbol *temp = global_symbol_table_start;
+		while (temp != NULL) {
+			global_symbol_table_start = global_symbol_table_start -> NEXT;
+			free(temp);
+			temp = global_symbol_table_start;
+		}
+
 		exit(1);
 	}
 	;
@@ -289,15 +310,6 @@ int main(int argc, char *argv[]) {
         	yyin = fp;
 	}
 	yyparse();
-
-	// deallocate memory used in symbol table
-	struct Gsymbol *temp = global_symbol_table_start;
-
-	while (temp != NULL) {
-		global_symbol_table_start = global_symbol_table_start -> NEXT;
-		free(temp);
-		temp = global_symbol_table_start;
-	}
 
 	return 0;
 }
