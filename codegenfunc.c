@@ -5,6 +5,7 @@
 int register_to_use = -1;  // this is the next to be allocated
 int next_register;  // this will be the variable used internally in the switch staements
 int lhs, rhs; // name should be enough
+int temp;
 struct Gsymbol *symbol_table_ptr;
 struct Tnode *id_to_assign;
 
@@ -25,7 +26,7 @@ void deallocate_register() {
 }
 
 int code_gen(struct Tnode *ptr) {
-  printf("In code_gen...\n");
+  //printf("In code_gen...\n");
   //printf("ptr -> TYPE = %d\n", ptr -> TYPE);
   //printf("ASGN = %d\n", ASGN);
   switch(ptr -> NODETYPE) {
@@ -36,7 +37,7 @@ int code_gen(struct Tnode *ptr) {
       return next_register;
       break;
     case ASGN:
-      printf("In ASGN...\n");
+      //printf("In ASGN...\n");
       // simple question of a move
       // but before that you have to write code for your LHS
       rhs = code_gen(ptr -> Ptr2);
@@ -50,7 +51,7 @@ int code_gen(struct Tnode *ptr) {
       break;
     case WRITE:
       // evaluate the argument within WRITE
-      printf("In WRITE...\n");
+      //printf("In WRITE...\n");
       lhs = code_gen(ptr -> Ptr1);
       fprintf(fp, "OUT R%d\n", lhs);
       deallocate_register();  // give back lhs register
@@ -60,8 +61,26 @@ int code_gen(struct Tnode *ptr) {
       fprintf(fp, "IN R%d\n", lhs);
       symbol_table_ptr = Glookup(ptr -> Ptr1 -> NAME);
       // check if it's an array and generate code for the same
-      fprintf(fp, "MOV [%d], R%d\n", symbol_table_ptr -> SIM_BINDING, lhs);
-      deallocate_register();
+      if (ptr -> Ptr1 -> Ptr1 == NULL) {
+        // not an array
+        fprintf(fp, "MOV [%d], R%d\n", symbol_table_ptr -> SIM_BINDING, lhs);
+      }
+      else {
+        // we have with us an array
+        // so generate code for the array index first
+        rhs = code_gen(ptr -> Ptr1 -> Ptr1);  // index of the required ID
+        // rhs now contains the register containing the index of the required array
+        // rhs + base address of variable ID will give you the location to store the incoming number
+        // bring in the base address into memory
+        temp = allocate_register();
+        fprintf(fp, "MOV R%d, %d\n", temp, symbol_table_ptr -> SIM_BINDING);
+        fprintf(fp, "ADD R%d, %d\n", rhs, temp);
+        deallocate_register();  // release temp
+        // now we have the proper address to read into stored in rhs
+        // move the value in R_lhs to the memory address in rhs
+        fprintf(fp, "MOV [%d], %d\n", rhs, lhs);
+      }
+      deallocate_register();  // release lhs
       break;
     case ID:
       // the value of the ID is needed
