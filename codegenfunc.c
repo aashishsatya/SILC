@@ -4,8 +4,6 @@
 
 int register_to_use = -1;  // this is the next to be allocated
 int next_register;  // this will be the variable used internally in the switch staements
-int lhs, rhs; // name should be enough
-int temp;
 struct Gsymbol *symbol_table_ptr;
 struct Tnode *id_to_assign;
 
@@ -26,10 +24,33 @@ void deallocate_register() {
 }
 
 int code_gen(struct Tnode *ptr) {
+
+  // note that these variables absolutely have to be local
+  // otherwise recursion will result in overwriting valid values
+  // (of variables such as, say lhs)
+
+  int lhs, rhs; // name should be enough
+  int temp;
+  int ans;  // this is to store the answer of operations like plus etc.
+
   //printf("In code_gen...\n");
   //printf("ptr -> TYPE = %d\n", ptr -> TYPE);
   //printf("ASGN = %d\n", ASGN);
   switch(ptr -> NODETYPE) {
+    case PLUS:
+      //return evaluate(t -> Ptr1) + evaluate(t -> Ptr2);
+      lhs = code_gen(ptr -> Ptr1);
+      rhs = code_gen(ptr -> Ptr2);
+      fprintf(fp, "ADD R%d, R%d\n", lhs, rhs);
+      deallocate_register();  // free rhs
+      return lhs;
+    case MINUS:
+      //return evaluate(t -> Ptr1) + evaluate(t -> Ptr2);
+      lhs = code_gen(ptr -> Ptr1);
+      rhs = code_gen(ptr -> Ptr2);
+      fprintf(fp, "SUB R%d, R%d\n", lhs, rhs);
+      deallocate_register();  // free rhs
+      return lhs;
     case NUM:
       // just copy the number to the next available register
       next_register = allocate_register();
@@ -74,11 +95,12 @@ int code_gen(struct Tnode *ptr) {
         // bring in the base address into memory
         temp = allocate_register();
         fprintf(fp, "MOV R%d, %d\n", temp, symbol_table_ptr -> SIM_BINDING);
-        fprintf(fp, "ADD R%d, %d\n", rhs, temp);
+        fprintf(fp, "ADD R%d, R%d\n", rhs, temp);
         deallocate_register();  // release temp
         // now we have the proper address to read into stored in rhs
         // move the value in R_lhs to the memory address in rhs
-        fprintf(fp, "MOV [%d], %d\n", rhs, lhs);
+        fprintf(fp, "MOV [R%d], R%d\n", rhs, lhs);
+        deallocate_register();  // release rhs
       }
       deallocate_register();  // release lhs
       break;
@@ -88,7 +110,25 @@ int code_gen(struct Tnode *ptr) {
       lhs = allocate_register();
       // look up the variable
       symbol_table_ptr = Glookup(ptr -> NAME);
-      fprintf(fp, "MOV R%d, [%d]\n", lhs, symbol_table_ptr -> SIM_BINDING);
+      if (ptr -> Ptr1 == NULL) {
+        // ptr is not the ID for an array
+        // so just access the memory location directly stored in its binding
+        fprintf(fp, "MOV R%d, [%d]\n", lhs, symbol_table_ptr -> SIM_BINDING);
+      }
+      else {
+        // whoopsie, ID is an array
+        // get and find the index of the required element
+        rhs = code_gen(ptr -> Ptr1);
+        temp = allocate_register();
+        // now we need to add this to the base address of the array
+        fprintf(fp, "MOV R%d, %d\n", temp, symbol_table_ptr -> SIM_BINDING);
+        fprintf(fp, "ADD R%d, R%d\n", rhs, temp);
+        deallocate_register();  // release temp
+        // now we have the proper address to read into stored in rhs
+        // move the value in the memory location in rhs
+        fprintf(fp, "MOV R%d, [R%d]\n", lhs, rhs);
+        deallocate_register();  // free rhs
+      }
       return lhs;
       break;
     case NODETYPE_SLIST:
