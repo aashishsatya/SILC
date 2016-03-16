@@ -38,17 +38,27 @@ int code_gen(struct Tnode *ptr) {
   //printf("ASGN = %d\n", ASGN);
   switch(ptr -> NODETYPE) {
     case PLUS:
-      //return evaluate(t -> Ptr1) + evaluate(t -> Ptr2);
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
       fprintf(fp, "ADD R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
     case MINUS:
-      //return evaluate(t -> Ptr1) + evaluate(t -> Ptr2);
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
       fprintf(fp, "SUB R%d, R%d\n", lhs, rhs);
+      deallocate_register();  // free rhs
+      return lhs;
+    case MUL:
+      lhs = code_gen(ptr -> Ptr1);
+      rhs = code_gen(ptr -> Ptr2);
+      fprintf(fp, "MUL R%d, R%d\n", lhs, rhs);
+      deallocate_register();  // free rhs
+      return lhs;
+    case DIV:
+      lhs = code_gen(ptr -> Ptr1);
+      rhs = code_gen(ptr -> Ptr2);
+      fprintf(fp, "DIV R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
     case NUM:
