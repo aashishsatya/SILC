@@ -80,7 +80,7 @@ int evaluate(struct Tnode *t) {
     int array_index;  // if an array is being used
     int value_to_write;
     char *id_name; // this variable will store the name of the ID obtained from id_to_assign
-    
+
     switch (t -> NODETYPE) {
       case PLUS:
         return evaluate(t -> Ptr1) + evaluate(t -> Ptr2);
@@ -278,8 +278,10 @@ void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Inst
 
   new_entry = (struct Gsymbol *) malloc(sizeof(struct Gsymbol));
   new_entry -> NAME = NAME;
+  //printf("new_entry -> NAME: %s\n", new_entry -> NAME);
   new_entry -> TYPE = TYPE;
   new_entry -> SIZE = SIZE;
+  //printf("new_entry -> SIZE: %d\n", new_entry -> SIZE);
   new_entry -> ARGLIST = ARGLIST;
   new_entry -> NEXT = NULL;
 
@@ -290,6 +292,7 @@ void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Inst
   int *int_space = (int *) malloc(sizeof(int) * SIZE);
   new_entry -> BINDING = int_space;
   new_entry -> SIM_BINDING = sim_binding;
+  //printf("new_entry -> SIM_BINDING: %d\n", new_entry -> SIM_BINDING);
   sim_binding += SIZE;
 
   // update the last entry of the symbol table to point to this new entry

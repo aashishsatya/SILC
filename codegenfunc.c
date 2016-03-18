@@ -4,8 +4,7 @@
 
 int register_to_use = -1;  // this is the next to be allocated
 int next_register;  // this will be the variable used internally in the switch staements
-struct Gsymbol *symbol_table_ptr;
-struct Tnode *id_to_assign;
+int label_counter = -1;  // a concatenation of L and this value will be used for labels
 
 int allocate_register() {
   if (register_to_use < 7) {
@@ -32,6 +31,12 @@ int code_gen(struct Tnode *ptr) {
   int lhs, rhs; // name should be enough
   int temp;
   int ans;  // this is to store the answer of operations like plus etc.
+  int local_label_counter;  // because of nestings, we might lose the value of label counter at that particular "level"
+  int start_of_loop_counter;  // for the while loops
+  int end_of_loop_counter;
+  // hence the need for this variable
+  struct Gsymbol *symbol_table_ptr;
+  struct Tnode *id_to_assign;
 
   //printf("In code_gen...\n");
   //printf("ptr -> TYPE = %d\n", ptr -> TYPE);
@@ -61,6 +66,24 @@ int code_gen(struct Tnode *ptr) {
       fprintf(fp, "DIV R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
+    case EQ:
+      lhs = code_gen(ptr -> Ptr1);
+      rhs = code_gen(ptr -> Ptr2);
+      fprintf(fp, "EQ R%d, R%d\n", lhs, rhs);
+      deallocate_register();  // free rhs
+      return lhs;
+    case GT:
+      lhs = code_gen(ptr -> Ptr1);
+      rhs = code_gen(ptr -> Ptr2);
+      fprintf(fp, "GT R%d, R%d\n", lhs, rhs);
+      deallocate_register();  // free rhs
+      return lhs;
+    case LT:
+      lhs = code_gen(ptr -> Ptr1);
+      rhs = code_gen(ptr -> Ptr2);
+      fprintf(fp, "LT R%d, R%d\n", lhs, rhs);
+      deallocate_register();  // free rhs
+      return lhs;
     case NUM:
       // just copy the number to the next available register
       next_register = allocate_register();
@@ -68,7 +91,7 @@ int code_gen(struct Tnode *ptr) {
       return next_register;
       break;
     case ASGN:
-      //printf("In ASGN...\n");
+      printf("In ASGN...\n");
       // simple question of a move
       // but before that you have to write code for your LHS
       rhs = code_gen(ptr -> Ptr2);
@@ -77,8 +100,26 @@ int code_gen(struct Tnode *ptr) {
       // just move the value in RHS to the memory location
       // but we need to get the binding first
       symbol_table_ptr = Glookup(ptr -> Ptr1 -> NAME);
-      fprintf(fp, "MOV [%d], R%d\n", symbol_table_ptr -> SIM_BINDING, rhs);
-      deallocate_register();
+      // check if LHS is an array now
+      if (ptr -> Ptr1 -> Ptr1 != NULL)  {
+        // issue instructions for the same
+        // we can't reuse ID for LHS because we need to know the value of the memory location
+        ans = code_gen(ptr -> Ptr1 -> Ptr1);  // generate code for index
+        // ans has the register number corresponding to the index
+        // calculate the base address of the location to store
+        next_register = allocate_register();
+        fprintf(fp, "MOV R%d, %d\n", next_register, symbol_table_ptr -> SIM_BINDING); // load the base address
+        fprintf(fp, "ADD R%d, R%d\n", next_register, ans);  // add it to the index
+        // write the value to the array
+        fprintf(fp, "MOV [R%d], R%d\n", next_register, rhs);
+        deallocate_register();  // deallocate next_register
+        deallocate_register();  // deallocate storage location of index (ans)
+      }
+      else {
+        // just variable assignment is needed
+        fprintf(fp, "MOV [%d], R%d\n", symbol_table_ptr -> SIM_BINDING, rhs);
+      }
+      deallocate_register();  // deallocate rhs
       break;
     case WRITE:
       // evaluate the argument within WRITE
@@ -104,6 +145,8 @@ int code_gen(struct Tnode *ptr) {
         // rhs + base address of variable ID will give you the location to store the incoming number
         // bring in the base address into memory
         temp = allocate_register();
+        printf("name = %s\n", ptr -> Ptr1 -> NAME);
+        printf("binding = %d\n", symbol_table_ptr -> SIM_BINDING);
         fprintf(fp, "MOV R%d, %d\n", temp, symbol_table_ptr -> SIM_BINDING);
         fprintf(fp, "ADD R%d, R%d\n", rhs, temp);
         deallocate_register();  // release temp
@@ -141,6 +184,10 @@ int code_gen(struct Tnode *ptr) {
       }
       return lhs;
       break;
+    case PARENS:
+      // nothing to do, just evaluate what's inside the parens
+      lhs = code_gen(ptr -> Ptr1);
+      return lhs;
     case NODETYPE_SLIST:
       //printf("Evaluating first arg...\n");
       code_gen(ptr -> Ptr1);
@@ -148,7 +195,43 @@ int code_gen(struct Tnode *ptr) {
       //printf("Accessing t -> Ptr2...");
       //printf("done.\n");
       code_gen(ptr -> Ptr2);
-      //printf("Done valuating next arg in SLIST.\n");
+      printf("Done valuating next arg in SLIST.\n");
+      return -1;
+    case IF:
+      // evaluate condition
+      lhs = code_gen(ptr -> Ptr1);
+      // if condition is false jump to remaining instructions
+      label_counter++;
+      local_label_counter = label_counter;
+      fprintf(fp, "JZ R%d, L%d\n", lhs, local_label_counter);
+      // print out instrutions to be executed on condition being true
+      printf("Generating instructions for IF true condn...\n");
+      code_gen(ptr -> Ptr2);
+      // print out the label to resume execution otherwise
+      printf("...done.\n");
+      fprintf(fp, "L%d:\n", local_label_counter);
+      deallocate_register();  // free lhs
+      return -1;
+    case WHILE:
+      // ah the most complex of them all
+      // while is basically
+      // label1
+      // check condition
+      // statements if condition is valid
+      // jump back to label1
+      // label 2
+      // so let's get on with it
+      label_counter++;
+      start_of_loop_counter = label_counter;
+      fprintf(fp, "L%d:\n", start_of_loop_counter);
+      lhs = code_gen(ptr -> Ptr1);
+      label_counter++;
+      end_of_loop_counter = label_counter;
+      fprintf(fp, "JZ R%d, L%d\n", lhs, end_of_loop_counter);
+      deallocate_register();  // free lhs
+      code_gen(ptr -> Ptr2);
+      fprintf(fp, "JMP L%d\n", start_of_loop_counter);
+      fprintf(fp, "L%d:\n", end_of_loop_counter);
       return -1;
   }
 }
