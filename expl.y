@@ -8,7 +8,7 @@
 	int yylex(void);
 	extern FILE *yyin;
 
-  int *var[26];
+  //int *var[26];
 	int variable_type;	// this will store the type of the variable that is being processed
 %}
 
@@ -17,7 +17,7 @@
 	struct  Tnode *tnode_ptr;
 }
 
-%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE BEGINNING END
+%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE BEGINNING END MAIN
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -56,7 +56,11 @@
 
 %%
 
-start: declarations BEGINNING slist END ENDOFFILE	{
+// now declarations mean global declarations
+
+start: declarations funcDefnList MainBlock ENDOFFILE	{
+
+		printf("In start...\n");
 
 		fp = NULL;
 		fp = fopen("intermediate_code", "w+");
@@ -65,7 +69,7 @@ start: declarations BEGINNING slist END ENDOFFILE	{
 		}
 
 		fprintf(fp, "START\n");
-		code_gen($3);	// generate the intermediate code
+		//code_gen($3);	// generate the intermediate code
 		fprintf(fp, "HALT\n");
 
 		fclose(fp);
@@ -83,9 +87,133 @@ start: declarations BEGINNING slist END ENDOFFILE	{
 	}
 	;
 
+funcDefnList: funcDefnList funcDefn {}
+	|		{}
+	;
+
+funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
+
+		printf("Processing function %s...\n", $2 -> NAME);
+
+		// check if the function name has been declared earlier
+
+		// check if the number of arguments and their types are correct
+		struct Gsymbol *fn_declaration = Glookup($2 -> NAME);
+		// fn_declaration -> ARGLIST will contain the arguments of the function
+		// this will have been declared by the 'declarations' section
+		struct ArgStruct *fn_decln_arglist = fn_declaration -> ARGLIST;
+		struct ArgStruct *fn_defn_arglist = current_arg_list;	// hope the names are clear
+		struct ArgStruct *temp_decln_arglist = fn_decln_arglist;
+		struct ArgStruct *temp_defn_arglist = fn_defn_arglist;
+
+		current_arg_list = NULL;	// again, bug if not added
+		// this will reset the argument list of functions so that new functions when
+		// parsed can simply set this variable (see below rule) and continue
+
+		while (temp_decln_arglist != NULL && temp_defn_arglist != NULL) {
+			printf("Stored parameter of name %s\n", temp_decln_arglist -> NAME);
+			if (strcmp(temp_decln_arglist -> NAME, temp_defn_arglist -> NAME) != 0) {
+				printf("Arguments in declaration and definition of function %s are not the same type, exiting.\n", $2 -> NAME);
+				exit(0);
+			}
+			if (temp_decln_arglist -> TYPE  != temp_defn_arglist -> TYPE) {
+				printf("Arguments in declaration and definition of function %s are not the same type, exiting.\n", $2 -> NAME);
+				exit(0);
+			}
+			temp_decln_arglist = temp_decln_arglist -> NEXT;
+			temp_defn_arglist = temp_defn_arglist -> NEXT;
+		}
+
+		if (temp_defn_arglist != NULL || temp_decln_arglist != NULL) {
+			printf("Incorrect number of arguments in declaration and definition of function %s, exiting.\n", $2 -> NAME);
+			exit(0);
+		}
+
+		// function body can be just stored in any of $1, $2 or $3
+		// or directly generate the code here?
+
+		// DO NOT FORGET TO SET current_local_symbol_table AS NULL -- BUG OTHERWISE!!
+		current_local_symbol_table = NULL;
+
+	}
+	;
+
+	ArgList: type vbl_declns ';' ArgList {
+
+		}
+
+		| type vbl_declns {
+
+		}
+
+		|  {}	// no arguments?
+		;
+
+vbl_declns:	ID ',' vbl_declns {
+
+		// append ID to the beginning of the argument list
+
+		struct ArgStruct *new_arg_list = (struct ArgStruct *) malloc(sizeof(struct ArgStruct));
+		new_arg_list -> TYPE = variable_type;
+		new_arg_list -> NAME = $1 -> NAME;
+		new_arg_list -> NEXT = current_arg_list;
+		new_arg_list -> BINDING = (int *) malloc(sizeof(int));
+		current_arg_list = new_arg_list;
+
+	}
+
+	| ID {
+
+		struct ArgStruct *new_arg_list = (struct ArgStruct *) malloc(sizeof(struct ArgStruct));
+		new_arg_list -> TYPE = variable_type;
+		new_arg_list -> NAME = $1 -> NAME;
+		new_arg_list -> NEXT = current_arg_list;
+		new_arg_list -> BINDING = (int *) malloc(sizeof(int));
+		current_arg_list = new_arg_list;
+
+	}
+
+// grammar for the main block (int main() {...})
+MainBlock: INT MAIN '(' ')' '{' localDeclarations BEGINNING slist END '}' {
+		printf("Processing main function...\n");
+	}
+
+
+// grammar for local declarations
+// here the difference from global declarations is that function declarations are not allowed
+// also you can't declare arrays
+
+localDeclarations:	DECL local_dec_list ENDDECL {}
+
+local_dec_list: local_dec local_dec_list {}
+	| local_dec {}
+	;
+
+local_dec: type local_id_list ';' {}
+
+local_id_list: local_id_list ',' ID {
+		// install this in the LOCAL symbol table for a function
+		Linstall(current_local_symbol_table, $3 -> NAME, variable_type);
+		printf("Installed variable %s\n", $3 -> NAME);
+	}
+
+	| ID {
+		Linstall(current_local_symbol_table, $1 -> NAME, variable_type);
+		printf("Installed variable %s\n", $1 -> NAME);
+	}
+	;
+
+funcBody: BEGINNING slist END {
+		// generate code for the function here
+		printf("Looking into the function body (code should be generated here)...\n");
+	}
+	;
+
 slist: slist stmt	{$$ = TreeCreate(-1, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, NULL);}
 	| stmt	{$$ = $1;}
 	;
+
+// all these are for global variables
 
 declarations: DECL dec_list ENDDECL {}
 
@@ -104,10 +232,6 @@ dec: type id_list ';' {}
 id_list:	id_list ',' ID	{
 		//printf("%s installed as %d\n", $3 -> NAME, variable_type);
 		Ginstall($3 -> NAME, variable_type, 1, NULL);
-		struct Gsymbol *temp = Glookup($3 -> NAME);
-		if (temp != NULL) {
-			//printf("Installation confirmed...\n");
-		}
 	}
 
 	| id_list ',' ID '[' NUM ']' {
@@ -128,10 +252,6 @@ id_list:	id_list ',' ID	{
 	|	ID {
 		Ginstall($1 -> NAME, variable_type, 1, NULL);
 		//printf("%s installed as standalone variable\n", $1 -> NAME);
-		struct Gsymbol *temp = Glookup($1 -> NAME);
-		if (temp != NULL) {
-			//printf("Installation confirmed...\n");
-		}
 	}
 
 	| ID '[' NUM ']' {
@@ -151,10 +271,28 @@ id_list:	id_list ',' ID	{
 		}
 		//printf("%s installed as array\n", $1 -> NAME);
 	}
+
+	| id_list ',' ID '(' ArgList ')' {
+
+			// function declaration
+
+			Ginstall($3 -> NAME, variable_type, -1, current_arg_list);	// size is irrelevant here
+			current_arg_list = NULL;
+
+		}
+
+	| ID '(' ArgList ')' {
+
+		Ginstall($1 -> NAME, variable_type, -1, current_arg_list);
+		current_arg_list = NULL;
+
+	}
 	;
 
 stmt: ID ASGN expr ';'	{
 			//printf("Making ID node for %s\n", $1 -> NAME);
+			$1 -> ArgList = current_arg_list;
+			$1 -> Lentry = current_local_symbol_table;
 			$1 -> TYPE = find_id_type($1);
 			//printf("id type = %d\n", $1 -> TYPE);
 			//printf("expr type = %d\n", $3 -> TYPE);
@@ -166,6 +304,8 @@ stmt: ID ASGN expr ';'	{
 		}
 
 		| ID '[' expr ']' ASGN expr ';' {
+			$1 -> ArgList = current_arg_list;
+			$1 -> Lentry = current_local_symbol_table;
 			$1 -> TYPE = find_id_type($1);
 			if ($1 -> TYPE != VAR_TYPE_INT_ARR && $1 -> TYPE != VAR_TYPE_BOOL_ARR) {
 				printf("Trying to index into a non-array variable %s of type %d; exiting.\n", $1 -> NAME, $1 -> TYPE);
@@ -183,6 +323,8 @@ stmt: ID ASGN expr ';'	{
 		}
 
 		| READ '(' ID ')' ';'	{
+			$3 -> ArgList = current_arg_list;
+			$3 -> Lentry = current_local_symbol_table;
 			$3 -> TYPE = find_id_type($3);
 			//printf("id type = %d\n", $3 -> TYPE);
 			if ($3 -> TYPE != VAR_TYPE_INT) {
@@ -193,6 +335,8 @@ stmt: ID ASGN expr ';'	{
 		}
 
 		| READ '(' ID '[' expr ']' ')' ';'	{
+			$3 -> ArgList = current_arg_list;
+			$3 -> Lentry = current_local_symbol_table;
 			$3 -> TYPE = find_id_type($3);
 			//printf("id type read = %d\n", $3 -> TYPE);
 			// this is READ for arrays
@@ -253,6 +397,8 @@ expr: expr PLUS expr	{
 	 | NUM			{$$ = $1;}
 
 	 | ID {
+		$1 -> Lentry = current_local_symbol_table;
+ 		$1 -> ArgList = current_arg_list;
 		// since it can be assumed that this variable would already exist,
 		// we can look it up and assign its type to it
 		$1 -> TYPE = find_id_type($1);
@@ -263,6 +409,8 @@ expr: expr PLUS expr	{
 		 // can be referencing an array
 		 //printf("ID given array\n");
 		 //printf("name = %s\n", $1 -> NAME);
+		 $1 -> ArgList = current_arg_list;
+		 $1 -> Lentry = current_local_symbol_table;
 		 $1 -> TYPE = find_id_type($1);
 		 if ($3 -> TYPE != VAR_TYPE_INT) {
 			 printf("Incorrect type for array index; exiting.\n");
