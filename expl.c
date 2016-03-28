@@ -1,9 +1,7 @@
 #include "y.tab.h"
 #include "expl.h"
 
-#define NODETYPE_SLIST 1
-
-int *var[26];
+//int *var[26];
 
 FILE *fp = NULL;  // this file pointer will be used for writing the intermediate code to a file
 
@@ -46,7 +44,7 @@ struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r) {
     return temp;
 }
 
-struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct Tnode *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3) {
+struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3) {
 
   struct Tnode *temp;
   temp = (struct Tnode*) malloc(sizeof(struct Tnode));
@@ -72,7 +70,7 @@ struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct T
 }
 
 int evaluate(struct Tnode *t) {
-    //printf("Starting evaluate...\n");
+    printf("Starting evaluate...\n");
     struct Tnode *id_to_assign = NULL;  // in case we need to get the name of the variable to work on
     struct Tnode *next_arg;
     struct Gsymbol *id_entry; // to store the pointer to the entry in the symbol table
@@ -307,28 +305,102 @@ void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Inst
   }
 }
 
-int find_id_type(struct Tnode *ptr) {
-  struct Gsymbol *temp = Glookup(ptr -> NAME);
-  int id_type;
-  switch (temp -> TYPE) {
-    case VAR_TYPE_INT_ARR:
-    case VAR_TYPE_INT:
-      // check if the given ID is for an array type variable
-      if (temp -> SIZE > 1) {
-        id_type = VAR_TYPE_INT_ARR;
-      }
-      else
-        id_type = VAR_TYPE_INT;
-      break;
-    case VAR_TYPE_BOOL_ARR:
-    case VAR_TYPE_BOOL:
-      // check if the given ID is for an array type variable
-      if (temp -> SIZE > 1) {
-        id_type = VAR_TYPE_BOOL_ARR;
-      }
-      else
-        id_type = VAR_TYPE_BOOL;
-      break;
+struct Lsymbol *Llookup(struct Lsymbol *current_lentry, char *NAME) {
+  while (current_lentry != NULL) {
+    if (strcmp(NAME, current_lentry -> NAME) == 0) {
+      return current_lentry;
+    }
+    current_lentry = current_lentry -> NEXT;
   }
+  return current_lentry;
+}
+
+struct ArgStruct *ArgLookup(struct ArgStruct *current_args, char *NAME) {
+  while (current_args != NULL) {
+    if (strcmp(NAME, current_args -> NAME) == 0) {
+      return current_args;
+    }
+    current_args = current_args -> NEXT;
+  }
+  return current_args;
+}
+
+int find_id_type(struct Tnode *ptr) {
+  int id_type;
+  //printf("Trying to find type of %s\n", ptr -> NAME);
+  struct Gsymbol *temp = Glookup(ptr -> NAME);
+  if (temp != NULL) {
+    //printf("Inside case for global symbol table\n");
+    //printf("Still trying to find type of %s\n", ptr -> NAME);
+    switch (temp -> TYPE) {
+      case VAR_TYPE_INT_ARR:
+      case VAR_TYPE_INT:
+        // check if the given ID is for an array type variable
+        if (temp -> SIZE > 1) {
+          id_type = VAR_TYPE_INT_ARR;
+        }
+        else
+          id_type = VAR_TYPE_INT;
+        break;
+      case VAR_TYPE_BOOL_ARR:
+      case VAR_TYPE_BOOL:
+        // check if the given ID is for an array type variable
+        if (temp -> SIZE > 1) {
+          id_type = VAR_TYPE_BOOL_ARR;
+        }
+        else
+          id_type = VAR_TYPE_BOOL;
+        break;
+    }
+    return id_type;
+  }
+  // check the local symbol table
+  struct Lsymbol *ltemp = Llookup(ptr -> Lentry, ptr -> NAME);
+  if (ltemp != NULL) {
+    // can only be boolean or int, no array types are allowed
+    return ltemp -> TYPE;
+  }
+  // check ArgList
+  struct ArgStruct *fn_arg_list = ArgLookup(ptr -> ArgList, ptr -> NAME);
+  id_type = fn_arg_list -> TYPE;
   return id_type;
 }
+
+// install function for local entries
+
+struct Lsymbol *current_local_symbol_table = NULL; // this variable will be initialized by
+// the grammar rule corresponding to function declaration
+
+void Linstall(struct Lsymbol *local_symbol_table, char *NAME, int TYPE) {
+
+  struct Lsymbol *temp = local_symbol_table;
+
+  // loop till we find the end of the linked list of the symbol table
+  while (temp != NULL && temp -> NEXT != NULL) {
+    // check if the variable has already been installed
+    if (strcmp(temp -> NAME, NAME) == 0) {
+      printf("Variable has already been installed, exiting.\n");
+      exit(0);
+    }
+    temp = temp -> NEXT;
+  }
+
+  struct Lsymbol *new_local_entry = (struct Lsymbol *) malloc(sizeof(struct Lsymbol));
+  new_local_entry -> NAME = NAME;
+  new_local_entry -> TYPE = TYPE;
+  new_local_entry -> NEXT = NULL;
+
+  // allocate space for the variable
+  int *new_entry_binding = (int *) malloc(sizeof(int));
+  new_local_entry -> BINDING = new_entry_binding;
+
+  if (temp == NULL) {
+    // means current_local_symbol_table hasn't been initialized yet
+    current_local_symbol_table = new_local_entry;
+  }
+  else {
+    temp -> NEXT = new_local_entry;
+  }
+}
+
+struct ArgStruct *current_arg_list; // stores the current arg list to add to
