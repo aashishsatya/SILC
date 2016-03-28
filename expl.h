@@ -6,6 +6,11 @@
 #define VAR_TYPE_INT_ARR 3
 #define VAR_TYPE_VOID 4
 
+#define NODETYPE_SLIST 5
+#define FUNCTION_ENTRY 6
+
+#include <string.h>
+
 struct Tnode {
 
   int TYPE; // Integer, Boolean or Void (for statements)
@@ -16,11 +21,11 @@ struct Tnode {
   * b) statement Type : (WHILE, READ etc.) for statements */
   char* NAME; // For Identifiers/Functions
   int VALUE; // for constants
-  struct Tnode *ArgList; // List of arguments for functions
+  struct ArgStruct *ArgList; // List of arguments for functions
   struct Tnode *Ptr1, *Ptr2, *Ptr3;
   /* Maximum of three subtrees (3 required for IF THEN ELSE) */
   struct Gsymbol *Gentry; // For global identifiers/functions
-  //Lsymbol *Lentry; // For Local variables
+  struct Lsymbol *Lentry; // For Local variables
 };
 
 // structure for storing details about function argument
@@ -28,6 +33,8 @@ struct Tnode {
 struct ArgStruct {
     char *NAME; // name of the argument
     int TYPE; // type of the argument
+    int *BINDING; // memory location where the argument is stored
+    struct ArgStruct *NEXT;
 };
 
 /** Symbol Table Entry is required for variables, arrays and functions**/
@@ -51,15 +58,16 @@ void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST); // Ins
 struct Lsymbol {
 /* Here only name, type, binding and pointer to next entry needed */
   char *NAME;
+  int TYPE;
   int *BINDING;
   struct Lsymbol *NEXT;
 };
 
-struct Lsymbol *Llookup(char *NAME);
+struct Lsymbol *Llookup(struct Lsymbol *local_symbol_table, char *NAME);
 
-void Linstall(char *NAME, int TYPE);
+void Linstall(struct Lsymbol *current_local_symbol_table, char *NAME, int TYPE);
 
-struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct Tnode *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3);
+struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3);
 
 /*Make a leaf Tnode and set the value of val field*/
 struct Tnode* makeLeafNode(int n);
