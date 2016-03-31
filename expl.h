@@ -7,7 +7,7 @@
 #define VAR_TYPE_VOID 4
 
 #define NODETYPE_SLIST 5
-#define FUNCTION_ENTRY 6
+#define NODETYPE_FUNCTION 6
 
 #include <string.h>
 
@@ -34,6 +34,7 @@ struct ArgStruct {
     char *NAME; // name of the argument
     int TYPE; // type of the argument
     int *BINDING; // memory location where the argument is stored
+    int ARG_SIM_BINDING;
     struct ArgStruct *NEXT;
 };
 
@@ -49,6 +50,7 @@ struct Gsymbol {
   struct ArgStruct *ARGLIST; // Argument List for functions
   /***Argstruct must store the name and type of each argument ***/
   struct Gsymbol *NEXT; // Pointer to next Symbol Table Entry */
+  struct Lsymbol *local_sym_table; // will correspond to the local symbol table entries of that particular function
 };
 
 struct Gsymbol *Glookup(char *NAME); // Look up for a global identifier
@@ -60,6 +62,7 @@ struct Lsymbol {
   char *NAME;
   int TYPE;
   int *BINDING;
+  int LOCAL_SIM_BINDING;
   struct Lsymbol *NEXT;
 };
 
@@ -67,13 +70,13 @@ struct Lsymbol *Llookup(struct Lsymbol *local_symbol_table, char *NAME);
 
 void Linstall(struct Lsymbol *current_local_symbol_table, char *NAME, int TYPE);
 
-struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3);
+struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3, struct Lsymbol *Lentry);
 
 /*Make a leaf Tnode and set the value of val field*/
 struct Tnode* makeLeafNode(int n);
 
 /*Make a Tnode with opertor, left and right branches set*/
-struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r);
+struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, struct Lsymbol *Lentry);
 
 /*To evaluate an expression tree*/
 int evaluate(struct Tnode *t);

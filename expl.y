@@ -49,6 +49,7 @@
 %type <tnode_ptr> BOOL;
 %type <tnode_ptr> declarations;
 %type <tnode_ptr> ENDOFFILE;
+%type <tnode_ptr> funcBody;
 
 %left PLUS MINUS
 %left MUL DIV
@@ -62,15 +63,9 @@ start: declarations funcDefnList MainBlock ENDOFFILE	{
 
 		printf("In start...\n");
 
-		fp = NULL;
-		fp = fopen("intermediate_code", "w+");
-		if (fp == NULL) {
-			printf("Error opening file, exiting");
-		}
-
-		fprintf(fp, "START\n");
+		//fprintf(fp, "START\n");
 		//code_gen($3);	// generate the intermediate code
-		fprintf(fp, "HALT\n");
+		//fprintf(fp, "HALT\n");
 
 		fclose(fp);
 
@@ -99,6 +94,7 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 
 		// check if the number of arguments and their types are correct
 		struct Gsymbol *fn_declaration = Glookup($2 -> NAME);
+		fn_declaration -> local_sym_table = current_local_symbol_table;
 		// fn_declaration -> ARGLIST will contain the arguments of the function
 		// this will have been declared by the 'declarations' section
 		struct ArgStruct *fn_decln_arglist = fn_declaration -> ARGLIST;
@@ -107,11 +103,13 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 		struct ArgStruct *temp_defn_arglist = fn_defn_arglist;
 
 		current_arg_list = NULL;	// again, bug if not added
+		current_arg_binding = 1;
 		// this will reset the argument list of functions so that new functions when
 		// parsed can simply set this variable (see below rule) and continue
 
 		while (temp_decln_arglist != NULL && temp_defn_arglist != NULL) {
 			printf("Stored parameter of name %s\n", temp_decln_arglist -> NAME);
+			printf("Its argument binding is %d\n", temp_decln_arglist -> ARG_SIM_BINDING);
 			if (strcmp(temp_decln_arglist -> NAME, temp_defn_arglist -> NAME) != 0) {
 				printf("Arguments in declaration and definition of function %s are not the same type, exiting.\n", $2 -> NAME);
 				exit(0);
@@ -129,11 +127,14 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 			exit(0);
 		}
 
-		// function body can be just stored in any of $1, $2 or $3
-		// or directly generate the code here?
+		// actually generate the function code
+		// name is needed to look up the local symbol table
+		// $8 will have the slist for functions
+		code_gen_function($8, $2 -> NAME);
 
 		// DO NOT FORGET TO SET current_local_symbol_table AS NULL -- BUG OTHERWISE!!
 		current_local_symbol_table = NULL;
+		local_symbol_table_counter = 1;
 
 	}
 	;
@@ -158,6 +159,9 @@ vbl_declns:	ID ',' vbl_declns {
 		new_arg_list -> NAME = $1 -> NAME;
 		new_arg_list -> NEXT = current_arg_list;
 		new_arg_list -> BINDING = (int *) malloc(sizeof(int));
+		new_arg_list -> ARG_SIM_BINDING = current_arg_binding * -1;	// multiplication with -1 is used to facilitate addition with BP
+		// (arguments will be stored as BP - 1, BP - 2 etc)
+		current_arg_binding++;
 		current_arg_list = new_arg_list;
 
 	}
@@ -169,14 +173,78 @@ vbl_declns:	ID ',' vbl_declns {
 		new_arg_list -> NAME = $1 -> NAME;
 		new_arg_list -> NEXT = current_arg_list;
 		new_arg_list -> BINDING = (int *) malloc(sizeof(int));
+		new_arg_list -> ARG_SIM_BINDING = current_arg_binding * -1;
+		current_arg_binding++;
 		current_arg_list = new_arg_list;
 
 	}
 
 // grammar for the main block (int main() {...})
-MainBlock: INT MAIN '(' ')' '{' localDeclarations BEGINNING slist END '}' {
+MainBlock: type MAIN '(' ')' '{' localDeclarations BEGINNING slist END '}' {
+
 		printf("Processing main function...\n");
+		// add main() to the global symbol table
+		Ginstall("main", variable_type, 0, current_arg_list);
+		struct Gsymbol *main_symbol_table_entry = Glookup("main");
+		main_symbol_table_entry -> local_sym_table = current_local_symbol_table;
+
+		if (current_local_symbol_table == NULL) {
+			printf("CURRENT_LOCAL_SYMBOL_TABLE IS NULL\n");
+		}
+
+		// this is where the file has to be dealt with because the rule for start won't
+		// get reduced unless this has
+		fp = NULL;
+		fp = fopen("intermediate_code", "w+");
+		if (fp == NULL) {
+			printf("Error opening file, exiting");
+		}
+
+		fprintf(fp, "START\n");
+
+		// save space for local variables
+
+		// it is the programmer's responsibility to suitably allocate stack pointers
+
+		// SP will be sim_binding - 1
+		fprintf(fp, "MOV SP, %d\n", sim_binding - 1);
+		// no registers are in use so far, so no need to push them
+		// continue with pushing local variables
+		fprintf(fp, "PUSH BP\n");
+		fprintf(fp, "MOV BP, SP\n");
+
+		// now actually push local variables
+		// we just have to leave space for them
+		// as in there's no need to worry about assigning values because that's done
+		// either by a READ statement or by an assignment operation
+		// (which we will take care of in the codegenfunc file)
+		struct Lsymbol *local_sym_table = current_local_symbol_table;
+		int reg_to_push = allocate_register();
+
+		while (local_sym_table != NULL) {
+			printf("Debug: allocated local variable %s for main with binding BP + %d\n", local_sym_table -> NAME, local_sym_table -> LOCAL_SIM_BINDING);
+			fprintf(fp, "PUSH R%d\n", reg_to_push);
+			local_sym_table = local_sym_table -> NEXT;
+		}
+
+		/*printf("#KATTADEBUG: THESE ARE THE LOCAL VARIABLES IN THE MEMORY:\n");
+
+		local_sym_table = main_symbol_table_entry -> local_sym_table;
+		while (local_sym_table != NULL) {
+			printf("Variable %s\n", local_sym_table -> NAME);
+			local_sym_table = local_sym_table -> NEXT;
+		}*/
+
+		// now generate code for the rest of the statements
+		$8 -> Lentry = current_local_symbol_table;
+		code_gen($8);
+		fprintf(fp, "HALT\n");
+
+		// as always
+		current_arg_list = NULL;
+		current_arg_binding	= 1;
 	}
+	;
 
 
 // grammar for local declarations
@@ -205,11 +273,12 @@ local_id_list: local_id_list ',' ID {
 
 funcBody: BEGINNING slist END {
 		// generate code for the function here
-		printf("Looking into the function body (code should be generated here)...\n");
+		// printf("Looking into the function body (code should be generated here)...\n");
+		$$ = $2;
 	}
 	;
 
-slist: slist stmt	{$$ = TreeCreate(-1, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, NULL);}
+slist: slist stmt	{$$ = TreeCreate(-1, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, NULL, current_local_symbol_table);}
 	| stmt	{$$ = $1;}
 	;
 
@@ -276,15 +345,19 @@ id_list:	id_list ',' ID	{
 
 			// function declaration
 
-			Ginstall($3 -> NAME, variable_type, -1, current_arg_list);	// size is irrelevant here
+			Ginstall($3 -> NAME, variable_type, 0, current_arg_list);	// size is irrelevant here
+			// so is the SIM_BINDING field
+			// but sim_binding value that's used must not be changed, hence the zero for the size
 			current_arg_list = NULL;
+			current_arg_binding	= 1;
 
 		}
 
 	| ID '(' ArgList ')' {
 
-		Ginstall($1 -> NAME, variable_type, -1, current_arg_list);
+		Ginstall($1 -> NAME, variable_type, 0, current_arg_list);
 		current_arg_list = NULL;
+		current_arg_binding	= 1;
 
 	}
 	;
@@ -300,7 +373,7 @@ stmt: ID ASGN expr ';'	{
 				printf("Inconsistent types for assignment; exiting.\n");
 				exit(0);
 			}
-			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, NULL, $1, $3, NULL);
+			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, NULL, $1, $3, NULL, current_local_symbol_table);
 		}
 
 		| ID '[' expr ']' ASGN expr ';' {
@@ -317,9 +390,9 @@ stmt: ID ASGN expr ';'	{
 				printf("Inconsistent types for assignment; exiting.\n");
 				exit(0);
 			}
-			struct Tnode *new_id_node = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL);
+			struct Tnode *new_id_node = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL, current_local_symbol_table);
 			////printf("Making ID array node\n");
-			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, NULL, new_id_node, $6, NULL);
+			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, NULL, new_id_node, $6, NULL, current_local_symbol_table);
 		}
 
 		| READ '(' ID ')' ';'	{
@@ -331,7 +404,7 @@ stmt: ID ASGN expr ';'	{
  			 printf("READ variable is of incorrect type; exiting.\n");
  			 exit(0);
  		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, NULL, $3, NULL, NULL);
+			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, NULL, $3, NULL, NULL, current_local_symbol_table);
 		}
 
 		| READ '(' ID '[' expr ']' ')' ';'	{
@@ -354,8 +427,8 @@ stmt: ID ASGN expr ';'	{
 				printf("Incorrect index type for array; exiting.\n");
 				exit(0);
 			}
-			struct Tnode *new_id_node = TreeCreate(-1, ID, -1, $3 -> NAME, NULL, $5, NULL, NULL);
-			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, NULL, new_id_node, NULL, NULL);
+			struct Tnode *new_id_node = TreeCreate(-1, ID, -1, $3 -> NAME, NULL, $5, NULL, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, NULL, new_id_node, NULL, NULL, current_local_symbol_table);
 		}
 
 		| WRITE '(' expr ')' ';' {
@@ -363,7 +436,7 @@ stmt: ID ASGN expr ';'	{
  			 printf("WRITE variable is of incorrect type; exiting.\n");
  			 exit(0);
  		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, WRITE, -1, NULL, NULL, $3, NULL, NULL);
+			$$ = TreeCreate(VAR_TYPE_VOID, WRITE, -1, NULL, NULL, $3, NULL, NULL, current_local_symbol_table);
 		}
 
 		| IF '(' expr ')' THEN slist ENDIF ';' {
@@ -371,7 +444,7 @@ stmt: ID ASGN expr ';'	{
  			 printf("Incorrect type for if condition statement; exiting.\n");
  			 exit(0);
  		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, IF, -1, NULL, NULL, $3, $6, NULL);
+			$$ = TreeCreate(VAR_TYPE_VOID, IF, -1, NULL, NULL, $3, $6, NULL, current_local_symbol_table);
 		}
 
 		| WHILE '(' expr ')' DO slist ENDWHILE ';' {
@@ -379,20 +452,20 @@ stmt: ID ASGN expr ';'	{
  			 printf("Incorrect type for while loop condition; exiting.\n");
  			 exit(0);
  		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, WHILE, -1, NULL, NULL, $3, $6, NULL);
+			$$ = TreeCreate(VAR_TYPE_VOID, WHILE, -1, NULL, NULL, $3, $6, NULL, current_local_symbol_table);
 		}
 		;
 
 expr: expr PLUS expr	{
-		$$ = makeOperatorNode(PLUS, $1, $3);
+		$$ = makeOperatorNode(PLUS, $1, $3, current_local_symbol_table);
 	}
-	 | expr MUL expr	{$$ = makeOperatorNode(MUL, $1, $3);}
+	 | expr MUL expr	{$$ = makeOperatorNode(MUL, $1, $3, current_local_symbol_table);}
 
-	 | expr MINUS expr	{$$ = makeOperatorNode(MINUS, $1, $3);}
+	 | expr MINUS expr	{$$ = makeOperatorNode(MINUS, $1, $3, current_local_symbol_table);}
 
-	 | expr DIV expr	{$$ = makeOperatorNode(DIV, $1, $3);}
+	 | expr DIV expr	{$$ = makeOperatorNode(DIV, $1, $3, current_local_symbol_table);}
 
-	 | '(' expr ')'		{$$ = TreeCreate($2 -> TYPE, PARENS, -1, NULL, NULL, $2, NULL, NULL);}
+	 | '(' expr ')'		{$$ = TreeCreate($2 -> TYPE, PARENS, -1, NULL, NULL, $2, NULL, NULL, current_local_symbol_table);}
 
 	 | NUM			{$$ = $1;}
 
@@ -418,10 +491,10 @@ expr: expr PLUS expr	{
 		 }
 		 switch($1 -> TYPE) {
 			 case VAR_TYPE_INT_ARR:
-			 	$$ = TreeCreate(VAR_TYPE_INT, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL);
+			 	$$ = TreeCreate(VAR_TYPE_INT, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL, current_local_symbol_table);
 				break;
 			 case VAR_TYPE_BOOL_ARR:
-			 	$$ = TreeCreate(VAR_TYPE_BOOL, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL);
+			 	$$ = TreeCreate(VAR_TYPE_BOOL, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL, current_local_symbol_table);
 				break;
 			 default:
 			  printf("Trying to index into a non-array variable %s; exiting.\n", $1 -> NAME);
@@ -430,15 +503,15 @@ expr: expr PLUS expr	{
 	 }
 
 	 | expr LT expr {
-		 $$ = makeOperatorNode(LT, $1, $3);
+		 $$ = makeOperatorNode(LT, $1, $3, current_local_symbol_table);
 	 }
 
 	 | expr GT expr {
-		 $$ = makeOperatorNode(GT, $1, $3);
+		 $$ = makeOperatorNode(GT, $1, $3, current_local_symbol_table);
 	 }
 
 	 | expr EQ expr {
-		 $$ = makeOperatorNode(EQ, $1, $3);
+		 $$ = makeOperatorNode(EQ, $1, $3, current_local_symbol_table);
 	 }
 	 ;
 

@@ -33,9 +33,11 @@ int code_gen(struct Tnode *ptr) {
   int ans;  // this is to store the answer of operations like plus etc.
   int local_label_counter;  // because of nestings, we might lose the value of label counter at that particular "level"
   int start_of_loop_counter;  // for the while loops
-  int end_of_loop_counter;
-  // hence the need for this variable
+  int end_of_loop_counter; // hence the need for these variables
+  int reqd_binding; // this will store the SIM binding value of a variable in the local symbol table or argument list
   struct Gsymbol *symbol_table_ptr;
+  struct Lsymbol *local_sym_table_ptr;
+  struct ArgStruct *function_arg_list;
   struct Tnode *id_to_assign;
 
   //printf("In code_gen...\n");
@@ -93,31 +95,61 @@ int code_gen(struct Tnode *ptr) {
     case ASGN:
       printf("In ASGN...\n");
       // simple question of a move
-      // but before that you have to write code for your LHS
+      // but before that you have to write code for your RHS
       rhs = code_gen(ptr -> Ptr2);
       // now, the LHS would already have a memory location alloted to it
       // during installation of the variables
       // just move the value in RHS to the memory location
       // but we need to get the binding first
-      symbol_table_ptr = Glookup(ptr -> Ptr1 -> NAME);
-      // check if LHS is an array now
-      if (ptr -> Ptr1 -> Ptr1 != NULL)  {
-        // issue instructions for the same
-        // we can't reuse ID for LHS because we need to know the value of the memory location
-        ans = code_gen(ptr -> Ptr1 -> Ptr1);  // generate code for index
-        // ans has the register number corresponding to the index
-        // calculate the base address of the location to store
-        next_register = allocate_register();
-        fprintf(fp, "MOV R%d, %d\n", next_register, symbol_table_ptr -> SIM_BINDING); // load the base address
-        fprintf(fp, "ADD R%d, R%d\n", next_register, ans);  // add it to the index
-        // write the value to the array
-        fprintf(fp, "MOV [R%d], R%d\n", next_register, rhs);
-        deallocate_register();  // deallocate next_register
-        deallocate_register();  // deallocate storage location of index (ans)
+      // check local symbol table
+      local_sym_table_ptr = Llookup(ptr -> Lentry, ptr -> Ptr1 -> NAME);
+      if (local_sym_table_ptr != NULL) {
+        reqd_binding = local_sym_table_ptr -> LOCAL_SIM_BINDING;
       }
       else {
-        // just variable assignment is needed
-        fprintf(fp, "MOV [%d], R%d\n", symbol_table_ptr -> SIM_BINDING, rhs);
+        // check argument list
+        function_arg_list = ArgLookup(ptr -> ArgList, ptr -> Ptr1 -> NAME);
+        if (function_arg_list != NULL) {
+          reqd_binding = function_arg_list -> ARG_SIM_BINDING;
+        }
+      }
+      // please be careful about the order of evaluation of the || (and its
+      // breakability on finding an answer thereof)
+      if (local_sym_table_ptr != NULL || function_arg_list != NULL) {
+        next_register = allocate_register();
+        temp = allocate_register();
+        fprintf(fp, "MOV R%d, BP\n", next_register);
+        fprintf(fp, "MOV R%d, %d\n", temp, reqd_binding);
+        fprintf(fp, "ADD R%d, R%d\n", next_register, temp);
+        deallocate_register();  // free temp
+        // next_register now contains BP + binding
+        fprintf(fp, "MOV [R%d], R%d\n", next_register, rhs);
+        deallocate_register();  // free next_register
+      }
+      else {
+        // check global symbol table
+        symbol_table_ptr = Glookup(ptr -> Ptr1 -> NAME);
+        if (symbol_table_ptr != NULL) {
+          // check if LHS is an array now
+          if (ptr -> Ptr1 -> Ptr1 != NULL)  {
+            // issue instructions for the same
+            // we can't reuse ID for LHS because we need to know the value of the memory location
+            ans = code_gen(ptr -> Ptr1 -> Ptr1);  // generate code for index
+            // ans has the register number corresponding to the index
+            // calculate the base address of the location to store
+            next_register = allocate_register();
+            fprintf(fp, "MOV R%d, %d\n", next_register, symbol_table_ptr -> SIM_BINDING); // load the base address
+            fprintf(fp, "ADD R%d, R%d\n", next_register, ans);  // add it to the index
+            // write the value to the array
+            fprintf(fp, "MOV [R%d], R%d\n", next_register, rhs);
+            deallocate_register();  // deallocate next_register
+            deallocate_register();  // deallocate storage location of index (ans)
+          }
+          else {
+            // just variable assignment is needed
+            fprintf(fp, "MOV [%d], R%d\n", symbol_table_ptr -> SIM_BINDING, rhs);
+          }
+        }
       }
       deallocate_register();  // deallocate rhs
       break;
@@ -131,29 +163,64 @@ int code_gen(struct Tnode *ptr) {
     case READ:
       lhs = allocate_register();
       fprintf(fp, "IN R%d\n", lhs);
-      symbol_table_ptr = Glookup(ptr -> Ptr1 -> NAME);
-      // check if it's an array and generate code for the same
-      if (ptr -> Ptr1 -> Ptr1 == NULL) {
-        // not an array
-        fprintf(fp, "MOV [%d], R%d\n", symbol_table_ptr -> SIM_BINDING, lhs);
+      // check local symbol table
+      if (ptr -> Lentry == NULL) {
+        printf("Lentry is NULL.\n");
+      }
+      local_sym_table_ptr = Llookup(ptr -> Lentry, ptr -> Ptr1 -> NAME);
+      if (local_sym_table_ptr != NULL) {
+        reqd_binding = local_sym_table_ptr -> LOCAL_SIM_BINDING;
       }
       else {
-        // we have with us an array
-        // so generate code for the array index first
-        rhs = code_gen(ptr -> Ptr1 -> Ptr1);  // index of the required ID
-        // rhs now contains the register containing the index of the required array
-        // rhs + base address of variable ID will give you the location to store the incoming number
-        // bring in the base address into memory
+        // check argument list
+        function_arg_list = ArgLookup(ptr -> ArgList, ptr -> Ptr1 -> NAME);
+        if (function_arg_list != NULL) {
+          reqd_binding = function_arg_list -> ARG_SIM_BINDING;
+        }
+      }
+      // please be careful about the order of evaluation of the || (and its
+      // breakability on finding an answer thereof)
+      if (local_sym_table_ptr != NULL || function_arg_list != NULL) {
+        next_register = allocate_register();
         temp = allocate_register();
-        printf("name = %s\n", ptr -> Ptr1 -> NAME);
-        printf("binding = %d\n", symbol_table_ptr -> SIM_BINDING);
-        fprintf(fp, "MOV R%d, %d\n", temp, symbol_table_ptr -> SIM_BINDING);
-        fprintf(fp, "ADD R%d, R%d\n", rhs, temp);
-        deallocate_register();  // release temp
-        // now we have the proper address to read into stored in rhs
-        // move the value in R_lhs to the memory address in rhs
-        fprintf(fp, "MOV [R%d], R%d\n", rhs, lhs);
-        deallocate_register();  // release rhs
+        fprintf(fp, "MOV R%d, BP\n", next_register);
+        fprintf(fp, "MOV R%d, %d\n", temp, reqd_binding);
+        fprintf(fp, "ADD R%d, R%d\n", next_register, temp);
+        deallocate_register();  // free temp
+        // next_register now contains BP + binding
+        fprintf(fp, "MOV [R%d], R%d\n", next_register, lhs);
+        deallocate_register();  // free next_register
+        printf("Wrote code from local sym table and or arglist\n");
+      }
+      else {
+        // check global symbol table
+        symbol_table_ptr = Glookup(ptr -> Ptr1 -> NAME);
+        if (symbol_table_ptr == NULL) {
+          printf("symbol_table_ptr is NULL, was looking for %s.\n", ptr -> Ptr1 -> NAME);
+        }
+        // check if it's an array and generate code for the same
+        if (ptr -> Ptr1 -> Ptr1 == NULL) {
+          // not an array
+          fprintf(fp, "MOV [%d], R%d\n", symbol_table_ptr -> SIM_BINDING, lhs);
+        }
+        else {
+          // we have with us an array
+          // so generate code for the array index first
+          rhs = code_gen(ptr -> Ptr1 -> Ptr1);  // index of the required ID
+          // rhs now contains the register containing the index of the required array
+          // rhs + base address of variable ID will give you the location to store the incoming number
+          // bring in the base address into memory
+          temp = allocate_register();
+          //printf("name = %s\n", ptr -> Ptr1 -> NAME);
+          //printf("binding = %d\n", symbol_table_ptr -> SIM_BINDING);
+          fprintf(fp, "MOV R%d, %d\n", temp, symbol_table_ptr -> SIM_BINDING);
+          fprintf(fp, "ADD R%d, R%d\n", rhs, temp);
+          deallocate_register();  // release temp
+          // now we have the proper address to read into stored in rhs
+          // move the value in R_lhs to the memory address in rhs
+          fprintf(fp, "MOV [R%d], R%d\n", rhs, lhs);
+          deallocate_register();  // release rhs
+        }
       }
       deallocate_register();  // release lhs
       break;
@@ -161,26 +228,54 @@ int code_gen(struct Tnode *ptr) {
       // the value of the ID is needed
       // load it into a register for now and return the register value
       lhs = allocate_register();
+      printf("In ID...\n");
       // look up the variable
-      symbol_table_ptr = Glookup(ptr -> NAME);
-      if (ptr -> Ptr1 == NULL) {
-        // ptr is not the ID for an array
-        // so just access the memory location directly stored in its binding
-        fprintf(fp, "MOV R%d, [%d]\n", lhs, symbol_table_ptr -> SIM_BINDING);
+      printf("Looking up %s\n", ptr -> NAME);
+      local_sym_table_ptr = Llookup(ptr -> Lentry, ptr -> NAME);
+      if (local_sym_table_ptr != NULL) {
+        reqd_binding = local_sym_table_ptr -> LOCAL_SIM_BINDING;
       }
       else {
-        // whoopsie, ID is an array
-        // get and find the index of the required element
-        rhs = code_gen(ptr -> Ptr1);
+        // check argument list
+        function_arg_list = ArgLookup(ptr -> ArgList, ptr -> NAME);
+        if (function_arg_list != NULL) {
+          reqd_binding = function_arg_list -> ARG_SIM_BINDING;
+        }
+      }
+      // please be careful about the order of evaluation of the || (and its
+      // breakability on finding an answer thereof)
+      if (local_sym_table_ptr != NULL || function_arg_list != NULL) {
+        next_register = allocate_register();
         temp = allocate_register();
-        // now we need to add this to the base address of the array
-        fprintf(fp, "MOV R%d, %d\n", temp, symbol_table_ptr -> SIM_BINDING);
-        fprintf(fp, "ADD R%d, R%d\n", rhs, temp);
-        deallocate_register();  // release temp
-        // now we have the proper address to read into stored in rhs
-        // move the value in the memory location in rhs
-        fprintf(fp, "MOV R%d, [R%d]\n", lhs, rhs);
-        deallocate_register();  // free rhs
+        fprintf(fp, "MOV R%d, BP\n", next_register);
+        fprintf(fp, "MOV R%d, %d\n", temp, reqd_binding);
+        fprintf(fp, "ADD R%d, R%d\n", next_register, temp);
+        deallocate_register();  // free temp
+        // next_register now contains BP + binding
+        fprintf(fp, "MOV R%d, [R%d]\n", lhs, next_register);
+        deallocate_register();  // free next_register
+      }
+      else {
+        symbol_table_ptr = Glookup(ptr -> NAME);
+        if (ptr -> Ptr1 == NULL) {
+          // ptr is not the ID for an array
+          // so just access the memory location directly stored in its binding
+          fprintf(fp, "MOV R%d, [%d]\n", lhs, symbol_table_ptr -> SIM_BINDING);
+        }
+        else {
+          // whoopsie, ID is an array
+          // get and find the index of the required element
+          rhs = code_gen(ptr -> Ptr1);
+          temp = allocate_register();
+          // now we need to add this to the base address of the array
+          fprintf(fp, "MOV R%d, %d\n", temp, symbol_table_ptr -> SIM_BINDING);
+          fprintf(fp, "ADD R%d, R%d\n", rhs, temp);
+          deallocate_register();  // release temp
+          // now we have the proper address to read into stored in rhs
+          // move the value in the memory location in rhs
+          fprintf(fp, "MOV R%d, [R%d]\n", lhs, rhs);
+          deallocate_register();  // free rhs
+        }
       }
       return lhs;
       break;
@@ -234,4 +329,9 @@ int code_gen(struct Tnode *ptr) {
       fprintf(fp, "L%d:\n", end_of_loop_counter);
       return -1;
   }
+}
+
+// generates code for a particular function and stores it at the end of the
+int code_gen_function(struct Tnode *ptr, char *NAME) {
+  return 0;
 }

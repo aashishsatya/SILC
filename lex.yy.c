@@ -800,7 +800,7 @@ YY_RULE_SETUP
 {
 	//printf("ID'ed NUM, working...\n");
 	//printf("Value of NUM = %d\n", atoi(yytext));
-	yylval.tnode_ptr = TreeCreate(VAR_TYPE_INT, NUM, atoi(yytext), NULL, NULL, NULL, NULL, NULL);
+	yylval.tnode_ptr = TreeCreate(VAR_TYPE_INT, NUM, atoi(yytext), NULL, NULL, NULL, NULL, NULL, NULL);
 	//printf("Created a node for NUM...\n");
 	return NUM;
 }
@@ -892,67 +892,68 @@ YY_RULE_SETUP
 	// you don't even know if the ID that is being referenced is an array and
 	// the programmer is asking for a particular index
 	// that has to be taken care of by the expl.y file
-	yylval.tnode_ptr = TreeCreate(-1, ID, -1, variable_name, NULL, NULL, NULL, NULL);
+	yylval.tnode_ptr = TreeCreate(-1, ID, -1, variable_name, NULL, NULL, NULL, NULL, NULL);	// it's because we're initializing the last parameter
+	// here as NULL that we have to include the statement $x -> Lentry = current_local_symbol_table everywhere
 
 	return ID;
 }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 55 "expl.l"
+#line 56 "expl.l"
 {return MINUS;}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 56 "expl.l"
+#line 57 "expl.l"
 {return PLUS;}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 57 "expl.l"
+#line 58 "expl.l"
 {return MUL;}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 58 "expl.l"
+#line 59 "expl.l"
 {return DIV;}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 59 "expl.l"
+#line 60 "expl.l"
 {return LT;}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 60 "expl.l"
+#line 61 "expl.l"
 {return GT;}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 61 "expl.l"
+#line 62 "expl.l"
 {return EQ;}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 62 "expl.l"
+#line 63 "expl.l"
 {return ASGN;}
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 63 "expl.l"
+#line 64 "expl.l"
 {return *yytext;}
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 65 "expl.l"
+#line 66 "expl.l"
 {printf("The unknown character is: %s\n", yytext);yyerror("unknown character\n");exit(1);}
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 67 "expl.l"
+#line 68 "expl.l"
 ECHO;
 	YY_BREAK
-#line 956 "lex.yy.c"
+#line 957 "lex.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -1948,7 +1949,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 67 "expl.l"
+#line 68 "expl.l"
 
 
 

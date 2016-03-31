@@ -12,7 +12,7 @@ FILE *fp = NULL;  // this file pointer will be used for writing the intermediate
     return temp;
 }*/
 
-struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r) {
+struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, struct Lsymbol *Lentry) {
     struct Tnode *temp;
     // no matter what the type of the operator pointers l and r must have -> TYPE as INT
     switch(OPERATOR) {
@@ -26,7 +26,7 @@ struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r) {
           printf("Incorrect operand type for arithmetic operator, exiting.");
           exit(0);
         }
-        temp = TreeCreate(VAR_TYPE_INT, OPERATOR, -1, NULL, NULL, l, r, NULL);
+        temp = TreeCreate(VAR_TYPE_INT, OPERATOR, -1, NULL, NULL, l, r, NULL, Lentry);
         break;
       case LT:
       case GT:
@@ -35,7 +35,7 @@ struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r) {
           printf("Incorrect operand type for logical operator, exiting.");
           exit(0);
         }
-        temp = TreeCreate(VAR_TYPE_BOOL, OPERATOR, -1, NULL, NULL, l, r, NULL);
+        temp = TreeCreate(VAR_TYPE_BOOL, OPERATOR, -1, NULL, NULL, l, r, NULL, Lentry);
         break;
       default:
         printf("Unrecognized operator, exiting.\n");
@@ -44,7 +44,7 @@ struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r) {
     return temp;
 }
 
-struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3) {
+struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3, struct Lsymbol *Lentry) {
 
   struct Tnode *temp;
   temp = (struct Tnode*) malloc(sizeof(struct Tnode));
@@ -65,6 +65,7 @@ struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct A
   temp -> Ptr1 = Ptr1;
   temp -> Ptr2 = Ptr2;
   temp -> Ptr3 = Ptr3;
+  temp -> Lentry = Lentry;
 
   return temp;
 }
@@ -327,6 +328,18 @@ struct ArgStruct *ArgLookup(struct ArgStruct *current_args, char *NAME) {
 
 int find_id_type(struct Tnode *ptr) {
   int id_type;
+  // check the local symbol table
+  struct Lsymbol *ltemp = Llookup(ptr -> Lentry, ptr -> NAME);
+  if (ltemp != NULL) {
+    // can only be boolean or int, no array types are allowed
+    return ltemp -> TYPE;
+  }
+  // check ArgList
+  struct ArgStruct *fn_arg_list = ArgLookup(ptr -> ArgList, ptr -> NAME);
+  if (fn_arg_list != NULL) {
+    id_type = fn_arg_list -> TYPE;
+    return id_type;
+  }
   //printf("Trying to find type of %s\n", ptr -> NAME);
   struct Gsymbol *temp = Glookup(ptr -> NAME);
   if (temp != NULL) {
@@ -354,21 +367,12 @@ int find_id_type(struct Tnode *ptr) {
     }
     return id_type;
   }
-  // check the local symbol table
-  struct Lsymbol *ltemp = Llookup(ptr -> Lentry, ptr -> NAME);
-  if (ltemp != NULL) {
-    // can only be boolean or int, no array types are allowed
-    return ltemp -> TYPE;
-  }
-  // check ArgList
-  struct ArgStruct *fn_arg_list = ArgLookup(ptr -> ArgList, ptr -> NAME);
-  id_type = fn_arg_list -> TYPE;
-  return id_type;
 }
 
 // install function for local entries
 
 struct Lsymbol *current_local_symbol_table = NULL; // this variable will be initialized by
+int local_symbol_table_counter = 1; // BP - this value will be used to access the variable in the intermediate code
 // the grammar rule corresponding to function declaration
 
 void Linstall(struct Lsymbol *local_symbol_table, char *NAME, int TYPE) {
@@ -389,6 +393,8 @@ void Linstall(struct Lsymbol *local_symbol_table, char *NAME, int TYPE) {
   new_local_entry -> NAME = NAME;
   new_local_entry -> TYPE = TYPE;
   new_local_entry -> NEXT = NULL;
+  new_local_entry -> LOCAL_SIM_BINDING = local_symbol_table_counter;
+  local_symbol_table_counter++;
 
   // allocate space for the variable
   int *new_entry_binding = (int *) malloc(sizeof(int));
@@ -404,3 +410,5 @@ void Linstall(struct Lsymbol *local_symbol_table, char *NAME, int TYPE) {
 }
 
 struct ArgStruct *current_arg_list; // stores the current arg list to add to
+struct Gsymbol *current_function; // the symbol table entry of the current function that's being handled
+int current_arg_binding = 1;  // this will be used to set the LOCAL_SIM_BINDING field for arguments
