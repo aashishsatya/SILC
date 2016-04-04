@@ -37,6 +37,7 @@ NL 	[\n]
 "begin" {return BEGINNING;}
 "end" {return END;}
 "main" {return MAIN;}
+"return" {return RETURN;}
 
 [a-z][a-zA-Z0-9]* {
 

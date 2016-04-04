@@ -5,6 +5,7 @@
 int register_to_use = -1;  // this is the next to be allocated
 int next_register;  // this will be the variable used internally in the switch staements
 int label_counter = -1;  // a concatenation of L and this value will be used for labels
+int no_local_vbls_pushed;
 
 int allocate_register() {
   if (register_to_use < 7) {
@@ -34,14 +35,22 @@ int code_gen(struct Tnode *ptr) {
   int local_label_counter;  // because of nestings, we might lose the value of label counter at that particular "level"
   int start_of_loop_counter;  // for the while loops
   int end_of_loop_counter; // hence the need for these variables
+  int return_reg;
   int reqd_binding; // this will store the SIM binding value of a variable in the local symbol table or argument list
+  int no_registers_in_use;
+  int no_of_args_pushed;
   struct Gsymbol *symbol_table_ptr;
   struct Lsymbol *local_sym_table_ptr;
   struct ArgStruct *function_arg_list;
   struct Tnode *id_to_assign;
+  struct Tnode *arg_to_evaluate;
 
-  //printf("In code_gen...\n");
-  //printf("ptr -> TYPE = %d\n", ptr -> TYPE);
+  if (ptr == NULL) {
+    printf("Warning: ptr is NULL!!\n");
+  }
+
+  printf("In code_gen...\n");
+  printf("ptr -> TYPE = %d\n", ptr -> TYPE);
   //printf("ASGN = %d\n", ASGN);
   switch(ptr -> NODETYPE) {
     case PLUS:
@@ -96,6 +105,7 @@ int code_gen(struct Tnode *ptr) {
       printf("In ASGN...\n");
       // simple question of a move
       // but before that you have to write code for your RHS
+      fprintf(fp, "// beginning of assignment operation to %s\n", ptr -> Ptr1 -> NAME);
       rhs = code_gen(ptr -> Ptr2);
       // now, the LHS would already have a memory location alloted to it
       // during installation of the variables
@@ -292,6 +302,110 @@ int code_gen(struct Tnode *ptr) {
       code_gen(ptr -> Ptr2);
       printf("Done valuating next arg in SLIST.\n");
       return -1;
+    case NODETYPE_FUNCTION_CALL:
+      printf("In function call...\n");
+      fprintf(fp, "// setting up stack before call to %s\n", ptr -> NAME);
+      // push registers
+      no_registers_in_use = register_to_use;
+      no_of_args_pushed = 0;
+      temp = 0;
+      fprintf(fp, "// pushing registers in use\n");
+      while (temp <= no_registers_in_use) {
+        fprintf(fp, "PUSH R%d\n", temp);
+        temp++;
+      }
+      // push arguments of the function call
+      // before we push the argument we need to evaluate it
+      fprintf(fp, "// pushing arguments to function calls\n");
+      arg_to_evaluate = ptr -> Ptr1;
+      while (arg_to_evaluate != NULL) {
+        if (arg_to_evaluate -> Ptr2 != NULL) {
+          // can be equal to NULL, say when there is only one argument
+          temp = code_gen(arg_to_evaluate -> Ptr2); // this '... -> Ptr2' is an expr
+          // we are evaluating Ptr1 first because we need the last argument to be pushed in first
+          // the value of expr is now stored in R_temp
+          fprintf(fp, "PUSH R%d\n", temp);
+          no_of_args_pushed++;
+          // free R_temp
+          deallocate_register();
+        }
+        arg_to_evaluate = arg_to_evaluate -> Ptr1;
+      }
+      // reserve space for return value
+      temp = allocate_register();
+      fprintf(fp, "// pushing space for return value\n");
+      fprintf(fp, "PUSH R%d\n", temp);
+      deallocate_register();
+      // CALL!!
+      fprintf(fp, "CALL %s\n", ptr -> NAME);
+      // obtain the return value
+      return_reg = allocate_register();
+      fprintf(fp, "POP R%d\n", return_reg);
+      // pop the arguments
+      if (no_of_args_pushed > 0) {
+          lhs = allocate_register();
+          rhs = allocate_register();
+          fprintf(fp, "// popping arguments off the stack\n");
+          fprintf(fp, "MOV R%d, SP\n", lhs);
+          fprintf(fp, "MOV R%d, %d\n", rhs, no_of_args_pushed);
+          fprintf(fp, "SUB R%d, R%d\n", lhs, rhs);
+          fprintf(fp, "MOV SP, R%d\n", lhs);
+          deallocate_register();  // free rhs
+          deallocate_register();  // free lhs
+      }
+      // restore registers
+      temp = no_registers_in_use;
+      while (temp > -1) {
+        fprintf(fp, "POP R%d\n", temp);
+        temp = temp - 1;
+      }
+      return return_reg;
+      break;
+    case NODETYPE_FUNCTION_DEFINITION:
+      no_local_vbls_pushed = 0;
+      printf("Dealing with function definition %s\n", ptr -> NAME);
+      fprintf(fp, "%s:\n", ptr -> NAME);
+      printf("...done dealing.\n");
+      fprintf(fp, "PUSH BP\n");
+      fprintf(fp, "MOV BP, SP\n");
+      // push the local variables
+      fprintf(fp, "// push registers for local variables\n");
+      symbol_table_ptr = Glookup(ptr -> NAME);
+      local_sym_table_ptr = symbol_table_ptr -> local_sym_table;
+      temp = allocate_register();
+      while (local_sym_table_ptr != NULL) {
+        fprintf(fp, "PUSH R%d // space for %s\n", temp, local_sym_table_ptr -> NAME);
+        local_sym_table_ptr = local_sym_table_ptr -> NEXT;
+        no_local_vbls_pushed++;
+      }
+      deallocate_register();  // deallocate temp
+      // generate code for statements
+      code_gen(ptr -> Ptr1);  // this will also include the return statement
+      return -1;  // irrelevant
+    case NODETYPE_RETURN_STMT:
+      // just evaluate the expr to be returned
+      ans = code_gen(ptr -> Ptr1);
+      lhs = allocate_register();
+      rhs = allocate_register();
+      fprintf(fp, "MOV R%d, BP\n", lhs);
+      fprintf(fp, "MOV R%d, 2\n", rhs);
+      fprintf(fp, "SUB R%d, R%d\n", lhs, rhs);  // R_lhs contains BP - 2 now
+      fprintf(fp, "MOV [R%d], R%d\n", lhs, ans);
+      deallocate_register();  // free ans
+      // clear the stack contents
+      fprintf(fp, "// deallocate space given to local variables\n");
+      fprintf(fp, "MOV R%d, SP\n", lhs);
+      printf("no_local_vbls_pushed = %d\n", no_local_vbls_pushed);
+      fprintf(fp, "MOV R%d, %d\n", rhs, no_local_vbls_pushed);
+      fprintf(fp, "SUB R%d, R%d\n", lhs, rhs);  // R_lhs now contains the number of local variables pushed
+      fprintf(fp, "MOV SP, R%d\n", lhs);
+      deallocate_register();  // free rhs
+      deallocate_register();  // free lhs
+      // set the base pointer back
+      fprintf(fp, "POP BP\n");
+      // RETURN!!
+      fprintf(fp, "RET\n");
+      return -1;
     case IF:
       // evaluate condition
       lhs = code_gen(ptr -> Ptr1);
@@ -331,7 +445,7 @@ int code_gen(struct Tnode *ptr) {
   }
 }
 
-// generates code for a particular function and stores it at the end of the
+// generates code for a particular function and writes it towards the beginning of the intermediate code file
 int code_gen_function(struct Tnode *ptr, char *NAME) {
   return 0;
 }

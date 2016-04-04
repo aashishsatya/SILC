@@ -411,4 +411,8 @@ void Linstall(struct Lsymbol *local_symbol_table, char *NAME, int TYPE) {
 
 struct ArgStruct *current_arg_list; // stores the current arg list to add to
 struct Gsymbol *current_function; // the symbol table entry of the current function that's being handled
-int current_arg_binding = 1;  // this will be used to set the LOCAL_SIM_BINDING field for arguments
+// this will be used to set the ARG_SIM_BINDING field for arguments
+// it's set to three because when we're calculating BP - binding, because of the return value and the
+// return address, an offset of two more comes in
+// hence BP - 1 (say for the first argument) - 2 = BP - 3
+int current_arg_binding = 3;

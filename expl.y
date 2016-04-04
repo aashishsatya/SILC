@@ -7,6 +7,8 @@
 
 	int yylex(void);
 	extern FILE *yyin;
+	extern int yylineno;
+	extern char *yytext;
 
   //int *var[26];
 	int variable_type;	// this will store the type of the variable that is being processed
@@ -17,7 +19,7 @@
 	struct  Tnode *tnode_ptr;
 }
 
-%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE BEGINNING END MAIN
+%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE BEGINNING END MAIN RETURN
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -50,6 +52,9 @@
 %type <tnode_ptr> declarations;
 %type <tnode_ptr> ENDOFFILE;
 %type <tnode_ptr> funcBody;
+%type <tnode_ptr> funcDefn;
+%type <tnode_ptr> RETURN;
+%type <tnode_ptr> ArgListFunctionCall;
 
 %left PLUS MINUS
 %left MUL DIV
@@ -82,7 +87,7 @@ start: declarations funcDefnList MainBlock ENDOFFILE	{
 	}
 	;
 
-funcDefnList: funcDefnList funcDefn {}
+funcDefnList: funcDefnList funcDefn {code_gen($2);}
 	|		{}
 	;
 
@@ -103,7 +108,7 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 		struct ArgStruct *temp_defn_arglist = fn_defn_arglist;
 
 		current_arg_list = NULL;	// again, bug if not added
-		current_arg_binding = 1;
+		current_arg_binding = 3;
 		// this will reset the argument list of functions so that new functions when
 		// parsed can simply set this variable (see below rule) and continue
 
@@ -130,11 +135,24 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 		// actually generate the function code
 		// name is needed to look up the local symbol table
 		// $8 will have the slist for functions
-		code_gen_function($8, $2 -> NAME);
+		printf("Creating tree for function definition of %s...\n", $2 -> NAME);
+		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_DEFINITION, -1, $2 -> NAME, NULL, $8, NULL, NULL, current_local_symbol_table);
 
 		// DO NOT FORGET TO SET current_local_symbol_table AS NULL -- BUG OTHERWISE!!
 		current_local_symbol_table = NULL;
 		local_symbol_table_counter = 1;
+
+		// this is where the file has to be dealt with because the rule for start won't
+		// get reduced unless this has
+		if (fp == NULL) {
+			// means there are no function definitions
+			// also we don't want fp to be initialized multiple times
+			fp = fopen("intermediate_code", "w+");
+			if (fp == NULL) {
+				printf("Error opening file, exiting");
+				exit(0);
+			}
+		}
 
 	}
 	;
@@ -150,13 +168,15 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 		|  {}	// no arguments?
 		;
 
-vbl_declns:	ID ',' vbl_declns {
+// TODO: this grammar will create problems on multiple declarations (e.g. integer a, b;)
+
+vbl_declns:	vbl_declns ',' ID {
 
 		// append ID to the beginning of the argument list
 
 		struct ArgStruct *new_arg_list = (struct ArgStruct *) malloc(sizeof(struct ArgStruct));
 		new_arg_list -> TYPE = variable_type;
-		new_arg_list -> NAME = $1 -> NAME;
+		new_arg_list -> NAME = $3 -> NAME;
 		new_arg_list -> NEXT = current_arg_list;
 		new_arg_list -> BINDING = (int *) malloc(sizeof(int));
 		new_arg_list -> ARG_SIM_BINDING = current_arg_binding * -1;	// multiplication with -1 is used to facilitate addition with BP
@@ -188,61 +208,40 @@ MainBlock: type MAIN '(' ')' '{' localDeclarations BEGINNING slist END '}' {
 		struct Gsymbol *main_symbol_table_entry = Glookup("main");
 		main_symbol_table_entry -> local_sym_table = current_local_symbol_table;
 
-		if (current_local_symbol_table == NULL) {
-			printf("CURRENT_LOCAL_SYMBOL_TABLE IS NULL\n");
-		}
-
 		// this is where the file has to be dealt with because the rule for start won't
 		// get reduced unless this has
-		fp = NULL;
-		fp = fopen("intermediate_code", "w+");
 		if (fp == NULL) {
-			printf("Error opening file, exiting");
+			// means there are no function definitions
+			// this is where we will have to open the file
+			fp = fopen("intermediate_code", "w+");
+			if (fp == NULL) {
+				printf("Error opening file, exiting");
+				exit(0);
+			}
 		}
+
+		struct Tnode *main_defn = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_DEFINITION, -1, "main", NULL, $8, NULL, NULL, current_local_symbol_table);
+		code_gen(main_defn);
 
 		fprintf(fp, "START\n");
-
-		// save space for local variables
-
+		// save space for global variables
 		// it is the programmer's responsibility to suitably allocate stack pointers
-
 		// SP will be sim_binding - 1
-		fprintf(fp, "MOV SP, %d\n", sim_binding - 1);
-		// no registers are in use so far, so no need to push them
-		// continue with pushing local variables
-		fprintf(fp, "PUSH BP\n");
-		fprintf(fp, "MOV BP, SP\n");
-
-		// now actually push local variables
-		// we just have to leave space for them
-		// as in there's no need to worry about assigning values because that's done
-		// either by a READ statement or by an assignment operation
-		// (which we will take care of in the codegenfunc file)
-		struct Lsymbol *local_sym_table = current_local_symbol_table;
-		int reg_to_push = allocate_register();
-
-		while (local_sym_table != NULL) {
-			printf("Debug: allocated local variable %s for main with binding BP + %d\n", local_sym_table -> NAME, local_sym_table -> LOCAL_SIM_BINDING);
-			fprintf(fp, "PUSH R%d\n", reg_to_push);
-			local_sym_table = local_sym_table -> NEXT;
-		}
-
-		/*printf("#KATTADEBUG: THESE ARE THE LOCAL VARIABLES IN THE MEMORY:\n");
-
-		local_sym_table = main_symbol_table_entry -> local_sym_table;
-		while (local_sym_table != NULL) {
-			printf("Variable %s\n", local_sym_table -> NAME);
-			local_sym_table = local_sym_table -> NEXT;
-		}*/
-
-		// now generate code for the rest of the statements
-		$8 -> Lentry = current_local_symbol_table;
-		code_gen($8);
+		fprintf(fp, "MOV SP, %d // leave space for global variables\n", sim_binding - 1);
+		// leave space for local variables
+		int temp = allocate_register();
+		// reserve space for return value
+		fprintf(fp, "PUSH R%d	// space for return value\n", temp);
+		deallocate_register();
+		fprintf(fp, "CALL main\n");
+		// get the return value
+		temp = allocate_register();
+		fprintf(fp, "POP R%d\n", temp);
 		fprintf(fp, "HALT\n");
 
 		// as always
 		current_arg_list = NULL;
-		current_arg_binding	= 1;
+		current_arg_binding	= 3;
 	}
 	;
 
@@ -349,7 +348,7 @@ id_list:	id_list ',' ID	{
 			// so is the SIM_BINDING field
 			// but sim_binding value that's used must not be changed, hence the zero for the size
 			current_arg_list = NULL;
-			current_arg_binding	= 1;
+			current_arg_binding	= 3;
 
 		}
 
@@ -357,7 +356,7 @@ id_list:	id_list ',' ID	{
 
 		Ginstall($1 -> NAME, variable_type, 0, current_arg_list);
 		current_arg_list = NULL;
-		current_arg_binding	= 1;
+		current_arg_binding	= 3;
 
 	}
 	;
@@ -454,7 +453,23 @@ stmt: ID ASGN expr ';'	{
  		  }
 			$$ = TreeCreate(VAR_TYPE_VOID, WHILE, -1, NULL, NULL, $3, $6, NULL, current_local_symbol_table);
 		}
+
+		| RETURN expr ';' {
+			$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_RETURN_STMT, -1, NULL, NULL, $2, NULL, NULL, current_local_symbol_table);
+		}
 		;
+
+// the arguments to functions can be
+ArgListFunctionCall:	ArgListFunctionCall ',' expr {
+		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, NULL, $1, $3, NULL, NULL);
+	}
+
+	|	expr {
+		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, NULL, NULL, $1, NULL, NULL);
+	}
+
+	|  {}	// no arguments
+	;
 
 expr: expr PLUS expr	{
 		$$ = makeOperatorNode(PLUS, $1, $3, current_local_symbol_table);
@@ -502,6 +517,17 @@ expr: expr PLUS expr	{
 		 }
 	 }
 
+	 | ID '(' ArgListFunctionCall ')' {
+		 // the most complex of them all, function call
+		 // just create a new node that will be processed by codegenfunc.c
+		 struct Gsymbol *function_call_lookup = Glookup($1 -> NAME);
+		 if (function_call_lookup == NULL) {
+			 printf("Error, undeclared function %s\n", $1 -> NAME);
+			 exit(0);
+		 }
+		 $$ = TreeCreate(function_call_lookup -> TYPE, NODETYPE_FUNCTION_CALL, -1, $1 -> NAME, NULL, $3, NULL, NULL, current_local_symbol_table);
+	 }
+
 	 | expr LT expr {
 		 $$ = makeOperatorNode(LT, $1, $3, current_local_symbol_table);
 	 }
@@ -519,7 +545,7 @@ expr: expr PLUS expr	{
 
 yyerror(char const *s)
 {
-    printf("yyerror %s",s);
+    printf("yyerror, %s: '%s' in line %d\n", s, yytext, yylineno);
 }
 
 
