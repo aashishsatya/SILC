@@ -12,7 +12,7 @@ FILE *fp = NULL;  // this file pointer will be used for writing the intermediate
     return temp;
 }*/
 
-struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, struct Lsymbol *Lentry) {
+struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, struct Lsymbol *Lentry, struct ArgStruct *current_arg_list) {
     struct Tnode *temp;
     // no matter what the type of the operator pointers l and r must have -> TYPE as INT
     switch(OPERATOR) {
@@ -26,7 +26,7 @@ struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, s
           printf("Incorrect operand type for arithmetic operator, exiting.");
           exit(0);
         }
-        temp = TreeCreate(VAR_TYPE_INT, OPERATOR, -1, NULL, NULL, l, r, NULL, Lentry);
+        temp = TreeCreate(VAR_TYPE_INT, OPERATOR, -1, NULL, current_arg_list, l, r, NULL, Lentry);
         break;
       case LT:
       case GT:
@@ -35,7 +35,7 @@ struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, s
           printf("Incorrect operand type for logical operator, exiting.");
           exit(0);
         }
-        temp = TreeCreate(VAR_TYPE_BOOL, OPERATOR, -1, NULL, NULL, l, r, NULL, Lentry);
+        temp = TreeCreate(VAR_TYPE_BOOL, OPERATOR, -1, NULL, current_arg_list, l, r, NULL, Lentry);
         break;
       default:
         printf("Unrecognized operator, exiting.\n");
@@ -73,7 +73,6 @@ struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct A
 int evaluate(struct Tnode *t) {
     printf("Starting evaluate...\n");
     struct Tnode *id_to_assign = NULL;  // in case we need to get the name of the variable to work on
-    struct Tnode *next_arg;
     struct Gsymbol *id_entry; // to store the pointer to the entry in the symbol table
     int truth_value;  // for if and while
     int array_index;  // if an array is being used
@@ -218,7 +217,6 @@ int evaluate(struct Tnode *t) {
         evaluate(t->Ptr1);
         //printf("Done valuating first arg in SLIST.\nEvaluating next arg in SLIST...\n");
         //printf("Accessing t -> Ptr2...");
-        next_arg = t -> Ptr2;
         //printf("done.\n");
         evaluate(t->Ptr2);
         //printf("Done valuating next arg in SLIST.\n");
@@ -238,8 +236,10 @@ int evaluate(struct Tnode *t) {
         }
         return -1;
       default:
+        printf("ERROR IN CODE: DEFAULT CASE FOR EVALUATE()!!\n");
         break;
     }
+    return -1;
 }
 
 struct Gsymbol *global_symbol_table_start = NULL;
@@ -317,10 +317,13 @@ struct Lsymbol *Llookup(struct Lsymbol *current_lentry, char *NAME) {
 }
 
 struct ArgStruct *ArgLookup(struct ArgStruct *current_args, char *NAME) {
+  printf("Searching for %s among arguments...\n", NAME);
   while (current_args != NULL) {
     if (strcmp(NAME, current_args -> NAME) == 0) {
+      printf("BINGO!\n");
       return current_args;
     }
+    printf("It's not %s...\n", current_args -> NAME);
     current_args = current_args -> NEXT;
   }
   return current_args;
@@ -367,6 +370,7 @@ int find_id_type(struct Tnode *ptr) {
     }
     return id_type;
   }
+  return -1;  // not a valid ID type
 }
 
 // install function for local entries

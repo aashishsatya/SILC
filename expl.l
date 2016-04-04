@@ -62,7 +62,7 @@ NL 	[\n]
 ">" {return GT;}
 "==" {return EQ;}
 [=]  {return ASGN;}
-[();\[\],\{\}]	{return *yytext;}
+[();\[\],\{\}\&]	{return *yytext;}
 
 .	{printf("The unknown character is: %s\n", yytext);yyerror("unknown character\n");exit(1);}
 

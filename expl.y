@@ -171,17 +171,21 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 // TODO: this grammar will create problems on multiple declarations (e.g. integer a, b;); fix
 
 vbl_declns:	vbl_declns ',' ID {
-
 		// append ID to the beginning of the argument list
-
 		current_arg_list = ArgInstall(current_arg_list, variable_type, $3 -> NAME, PASS_BY_VALUE);
-
 	}
 
+	|	vbl_declns ',' '&' ID {
+			// append ID to the beginning of the argument list
+			current_arg_list = ArgInstall(current_arg_list, variable_type, $4 -> NAME, PASS_BY_REFERENCE);
+		}
+
 	| ID {
-
 		current_arg_list = ArgInstall(current_arg_list, variable_type, $1 -> NAME, PASS_BY_VALUE);
+	}
 
+	| '&' ID {
+		current_arg_list = ArgInstall(current_arg_list, variable_type, $2 -> NAME, PASS_BY_REFERENCE);
 	}
 	;
 
@@ -358,7 +362,7 @@ stmt: ID ASGN expr ';'	{
 				printf("Inconsistent types for assignment; exiting.\n");
 				exit(0);
 			}
-			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, NULL, $1, $3, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, $1, $3, NULL, current_local_symbol_table);
 		}
 
 		| ID '[' expr ']' ASGN expr ';' {
@@ -377,7 +381,7 @@ stmt: ID ASGN expr ';'	{
 			}
 			struct Tnode *new_id_node = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL, current_local_symbol_table);
 			////printf("Making ID array node\n");
-			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, NULL, new_id_node, $6, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, new_id_node, $6, NULL, current_local_symbol_table);
 		}
 
 		| READ '(' ID ')' ';'	{
@@ -389,7 +393,7 @@ stmt: ID ASGN expr ';'	{
  			 printf("READ variable is of incorrect type; exiting.\n");
  			 exit(0);
  		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, NULL, $3, NULL, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table);
 		}
 
 		| READ '(' ID '[' expr ']' ')' ';'	{
@@ -413,7 +417,7 @@ stmt: ID ASGN expr ';'	{
 				exit(0);
 			}
 			struct Tnode *new_id_node = TreeCreate(-1, ID, -1, $3 -> NAME, NULL, $5, NULL, NULL, current_local_symbol_table);
-			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, NULL, new_id_node, NULL, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, current_arg_list, new_id_node, NULL, NULL, current_local_symbol_table);
 		}
 
 		| WRITE '(' expr ')' ';' {
@@ -421,7 +425,7 @@ stmt: ID ASGN expr ';'	{
  			 printf("WRITE variable is of incorrect type; exiting.\n");
  			 exit(0);
  		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, WRITE, -1, NULL, NULL, $3, NULL, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, WRITE, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table);
 		}
 
 		| IF '(' expr ')' THEN slist ENDIF ';' {
@@ -429,7 +433,7 @@ stmt: ID ASGN expr ';'	{
  			 printf("Incorrect type for if condition statement; exiting.\n");
  			 exit(0);
  		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, IF, -1, NULL, NULL, $3, $6, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, IF, -1, NULL, current_arg_list, $3, $6, NULL, current_local_symbol_table);
 		}
 
 		| WHILE '(' expr ')' DO slist ENDWHILE ';' {
@@ -437,34 +441,34 @@ stmt: ID ASGN expr ';'	{
  			 printf("Incorrect type for while loop condition; exiting.\n");
  			 exit(0);
  		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, WHILE, -1, NULL, NULL, $3, $6, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, WHILE, -1, NULL, current_arg_list, $3, $6, NULL, current_local_symbol_table);
 		}
 
 		| RETURN expr ';' {
-			$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_RETURN_STMT, -1, NULL, NULL, $2, NULL, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_RETURN_STMT, -1, NULL, current_arg_list, $2, NULL, NULL, current_local_symbol_table);
 		}
 		;
 
 // the arguments to functions can be
 ArgListFunctionCall:	ArgListFunctionCall ',' expr {
-		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, NULL, $1, $3, NULL, NULL);
+		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, current_arg_list, $1, $3, NULL, NULL);
 	}
 
 	|	expr {
-		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, NULL, NULL, $1, NULL, NULL);
+		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, current_arg_list, NULL, $1, NULL, NULL);
 	}
 
 	|  {}	// no arguments
 	;
 
 expr: expr PLUS expr	{
-		$$ = makeOperatorNode(PLUS, $1, $3, current_local_symbol_table);
+		$$ = makeOperatorNode(PLUS, $1, $3, current_local_symbol_table, current_arg_list);
 	}
-	 | expr MUL expr	{$$ = makeOperatorNode(MUL, $1, $3, current_local_symbol_table);}
+	 | expr MUL expr	{$$ = makeOperatorNode(MUL, $1, $3, current_local_symbol_table, current_arg_list);}
 
-	 | expr MINUS expr	{$$ = makeOperatorNode(MINUS, $1, $3, current_local_symbol_table);}
+	 | expr MINUS expr	{$$ = makeOperatorNode(MINUS, $1, $3, current_local_symbol_table, current_arg_list);}
 
-	 | expr DIV expr	{$$ = makeOperatorNode(DIV, $1, $3, current_local_symbol_table);}
+	 | expr DIV expr	{$$ = makeOperatorNode(DIV, $1, $3, current_local_symbol_table, current_arg_list);}
 
 	 | '(' expr ')'		{$$ = TreeCreate($2 -> TYPE, PARENS, -1, NULL, NULL, $2, NULL, NULL, current_local_symbol_table);}
 
@@ -492,10 +496,10 @@ expr: expr PLUS expr	{
 		 }
 		 switch($1 -> TYPE) {
 			 case VAR_TYPE_INT_ARR:
-			 	$$ = TreeCreate(VAR_TYPE_INT, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL, current_local_symbol_table);
+			 	$$ = TreeCreate(VAR_TYPE_INT, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table);
 				break;
 			 case VAR_TYPE_BOOL_ARR:
-			 	$$ = TreeCreate(VAR_TYPE_BOOL, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL, current_local_symbol_table);
+			 	$$ = TreeCreate(VAR_TYPE_BOOL, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table);
 				break;
 			 default:
 			  printf("Trying to index into a non-array variable %s; exiting.\n", $1 -> NAME);
@@ -511,19 +515,19 @@ expr: expr PLUS expr	{
 			 printf("Error, undeclared function %s\n", $1 -> NAME);
 			 exit(0);
 		 }
-		 $$ = TreeCreate(function_call_lookup -> TYPE, NODETYPE_FUNCTION_CALL, -1, $1 -> NAME, NULL, $3, NULL, NULL, current_local_symbol_table);
+		 $$ = TreeCreate(function_call_lookup -> TYPE, NODETYPE_FUNCTION_CALL, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table);
 	 }
 
 	 | expr LT expr {
-		 $$ = makeOperatorNode(LT, $1, $3, current_local_symbol_table);
+		 $$ = makeOperatorNode(LT, $1, $3, current_local_symbol_table, current_arg_list);
 	 }
 
 	 | expr GT expr {
-		 $$ = makeOperatorNode(GT, $1, $3, current_local_symbol_table);
+		 $$ = makeOperatorNode(GT, $1, $3, current_local_symbol_table, current_arg_list);
 	 }
 
 	 | expr EQ expr {
-		 $$ = makeOperatorNode(EQ, $1, $3, current_local_symbol_table);
+		 $$ = makeOperatorNode(EQ, $1, $3, current_local_symbol_table, current_arg_list);
 	 }
 	 ;
 
@@ -532,21 +536,6 @@ expr: expr PLUS expr	{
 yyerror(char const *s)
 {
     printf("yyerror, %s: '%s' in line %d\n", s, yytext, yylineno);
-}
-
-struct ArgStruct *ArgInstall(struct ArgStruct *current_arg_list, int variable_type, char *NAME, int PASS_TYPE) {
-	// append ID to the beginning of the argument list
-
-	struct ArgStruct *new_arg_list = (struct ArgStruct *) malloc(sizeof(struct ArgStruct));
-	new_arg_list -> TYPE = variable_type;
-	new_arg_list -> NAME = NAME;
-	new_arg_list -> NEXT = current_arg_list;
-	new_arg_list -> BINDING = (int *) malloc(sizeof(int));
-	new_arg_list -> ARG_SIM_BINDING = current_arg_binding * -1;	// multiplication with -1 is used to facilitate addition with BP
-	// (arguments will be stored as BP - 1, BP - 2 etc)
-	new_arg_list -> PASS_TYPE = PASS_TYPE;
-	current_arg_binding++;
-	return new_arg_list;
 }
 
 int main(int argc, char *argv[]) {

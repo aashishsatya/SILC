@@ -41,16 +41,15 @@ int code_gen(struct Tnode *ptr) {
   int no_of_args_pushed;
   struct Gsymbol *symbol_table_ptr;
   struct Lsymbol *local_sym_table_ptr;
-  struct ArgStruct *function_arg_list;
-  struct Tnode *id_to_assign;
+  struct ArgStruct *function_arg_list = NULL;
   struct Tnode *arg_to_evaluate;
 
   if (ptr == NULL) {
     printf("Warning: ptr is NULL!!\n");
   }
 
-  printf("In code_gen...\n");
-  printf("ptr -> TYPE = %d\n", ptr -> TYPE);
+  //printf("In code_gen...\n");
+  //printf("ptr -> TYPE = %d\n", ptr -> TYPE);
   //printf("ASGN = %d\n", ASGN);
   switch(ptr -> NODETYPE) {
     case PLUS:
@@ -120,6 +119,7 @@ int code_gen(struct Tnode *ptr) {
         // check argument list
         function_arg_list = ArgLookup(ptr -> ArgList, ptr -> Ptr1 -> NAME);
         if (function_arg_list != NULL) {
+          //printf("Name of the argument is %s\n", function_arg_list -> NAME);
           // check the pass type of the argument
           if (function_arg_list -> PASS_TYPE == PASS_BY_VALUE)
             reqd_binding = function_arg_list -> ARG_SIM_BINDING;
@@ -127,15 +127,22 @@ int code_gen(struct Tnode *ptr) {
       }
       // please be careful about the order of evaluation of the || (and its
       // breakability on finding an answer thereof)
-      if (local_sym_table_ptr != NULL || (function_arg_list != NULL && function_arg_list -> PASS_TYPE == PASS_BY_VALUE)) {
+      if (local_sym_table_ptr != NULL || function_arg_list != NULL) {
         next_register = allocate_register();
         temp = allocate_register();
         fprintf(fp, "MOV R%d, BP\n", next_register);
         fprintf(fp, "MOV R%d, %d\n", temp, reqd_binding);
         fprintf(fp, "ADD R%d, R%d\n", next_register, temp);
-        deallocate_register();  // free temp
-        // next_register now contains BP + binding
+        // if the argument is called by reference, then [BP + 2] will contain the address of the
+        // location where the result is to be stored
+        // the intended code stores the result at [R_next_register]
+        // so if we set R_next_register to be [BP + 2] (in case of call by reference) then both cases should work
+        if (function_arg_list != NULL)
+          if (function_arg_list -> PASS_TYPE == PASS_BY_REFERENCE)
+            fprintf(fp, "MOV R%d, [R%d]\n", next_register, next_register);
         fprintf(fp, "MOV [R%d], R%d\n", next_register, rhs);
+        // next_register now contains BP + binding
+        deallocate_register();  // free temp
         deallocate_register();  // free next_register
       }
       else {
@@ -187,22 +194,29 @@ int code_gen(struct Tnode *ptr) {
         // check argument list
         function_arg_list = ArgLookup(ptr -> ArgList, ptr -> Ptr1 -> NAME);
         if (function_arg_list != NULL) {
+          printf("Required binding = %d\n", function_arg_list -> ARG_SIM_BINDING);
           reqd_binding = function_arg_list -> ARG_SIM_BINDING;
         }
       }
       // please be careful about the order of evaluation of the || (and its
       // breakability on finding an answer thereof)
-      if (local_sym_table_ptr != NULL || (function_arg_list != NULL && function_arg_list -> PASS_TYPE == PASS_BY_VALUE)) {
+      if (local_sym_table_ptr != NULL || function_arg_list != NULL) {
         next_register = allocate_register();
         temp = allocate_register();
         fprintf(fp, "MOV R%d, BP\n", next_register);
         fprintf(fp, "MOV R%d, %d\n", temp, reqd_binding);
         fprintf(fp, "ADD R%d, R%d\n", next_register, temp);
-        deallocate_register();  // free temp
-        // next_register now contains BP + binding
+        // if the argument is called by reference, then [BP + 2] will contain the address of the
+        // location where the result is to be stored
+        // the intended code stores the result at [R_next_register]
+        // so if we set R_next_register to be [BP + 2] (in case of call by reference) then both cases should work
+        //printf("Name of the argument = %s\n", function_arg_list -> NAME);
+        if (function_arg_list != NULL && function_arg_list -> PASS_TYPE == PASS_BY_REFERENCE)
+          fprintf(fp, "MOV R%d, [R%d]\n", next_register, next_register);
         fprintf(fp, "MOV [R%d], R%d\n", next_register, lhs);
+        // next_register now contains BP + binding
+        deallocate_register();  // free temp
         deallocate_register();  // free next_register
-        printf("Wrote code from local sym table and or arglist\n");
       }
       else {
         // check global symbol table
@@ -256,15 +270,21 @@ int code_gen(struct Tnode *ptr) {
       }
       // please be careful about the order of evaluation of the || (and its
       // breakability on finding an answer thereof)
-      if (local_sym_table_ptr != NULL || (function_arg_list != NULL && function_arg_list -> PASS_TYPE == PASS_BY_VALUE)) {
+      if (local_sym_table_ptr != NULL || function_arg_list != NULL) {
         next_register = allocate_register();
         temp = allocate_register();
         fprintf(fp, "MOV R%d, BP\n", next_register);
         fprintf(fp, "MOV R%d, %d\n", temp, reqd_binding);
         fprintf(fp, "ADD R%d, R%d\n", next_register, temp);
-        deallocate_register();  // free temp
-        // next_register now contains BP + binding
+        // if the argument is called by reference, then [BP + 2] will contain the address of the
+        // location where the result is to be stored
+        // the intended code stores the result at [R_next_register]
+        // so if we set R_next_register to be [BP + 2] (in case of call by reference) then both cases should work
+        if (function_arg_list != NULL && function_arg_list -> PASS_TYPE == PASS_BY_REFERENCE)
+          fprintf(fp, "MOV R%d, [R%d]\n", next_register, next_register);
         fprintf(fp, "MOV R%d, [R%d]\n", lhs, next_register);
+        // next_register now contains BP + binding
+        deallocate_register();  // free temp
         deallocate_register();  // free next_register
       }
       else {
@@ -320,12 +340,22 @@ int code_gen(struct Tnode *ptr) {
       // before we push the argument we need to evaluate it
       fprintf(fp, "// pushing arguments to function calls\n");
       arg_to_evaluate = ptr -> Ptr1;
+      symbol_table_ptr = Glookup(ptr -> NAME);
+      function_arg_list = symbol_table_ptr -> ARGLIST;  // this is needed to check if the arguments are called by value or reference
       while (arg_to_evaluate != NULL) {
         if (arg_to_evaluate -> Ptr2 != NULL) {
           // can be equal to NULL, say when there is only one argument
           temp = code_gen(arg_to_evaluate -> Ptr2); // this '... -> Ptr2' is an expr
           // we are evaluating Ptr1 first because we need the last argument to be pushed in first
           // the value of expr is now stored in R_temp
+          if (function_arg_list -> PASS_TYPE == PASS_BY_REFERENCE) {
+            // current binding = BP + whatever temp has in it
+            // so push this (BP + value in temp) on to the stack
+            lhs = allocate_register();
+            fprintf(fp, "MOV R%d, BP\n", lhs);
+            fprintf(fp, "ADD R%d, R%d\n", temp, lhs);
+            deallocate_register();  // free lhs
+          }
           fprintf(fp, "PUSH R%d\n", temp);
           no_of_args_pushed++;
           // free R_temp
@@ -445,6 +475,23 @@ int code_gen(struct Tnode *ptr) {
       fprintf(fp, "L%d:\n", end_of_loop_counter);
       return -1;
   }
+
+  return 0;
+}
+
+struct ArgStruct *ArgInstall(struct ArgStruct *current_arg_list, int variable_type, char *NAME, int PASS_TYPE) {
+	// append ID to the beginning of the argument list
+
+	struct ArgStruct *new_arg_list = (struct ArgStruct *) malloc(sizeof(struct ArgStruct));
+	new_arg_list -> TYPE = variable_type;
+	new_arg_list -> NAME = NAME;
+	new_arg_list -> NEXT = current_arg_list;
+	new_arg_list -> BINDING = (int *) malloc(sizeof(int));
+	new_arg_list -> ARG_SIM_BINDING = current_arg_binding * -1;	// multiplication with -1 is used to facilitate addition with BP
+	// (arguments will be stored as BP - 1, BP - 2 etc)
+	new_arg_list -> PASS_TYPE = PASS_TYPE;
+	current_arg_binding++;
+	return new_arg_list;
 }
 
 // generates code for a particular function and writes it towards the beginning of the intermediate code file

@@ -83,7 +83,7 @@ struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct A
 struct Tnode* makeLeafNode(int n);
 
 /*Make a Tnode with opertor, left and right branches set*/
-struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, struct Lsymbol *Lentry);
+struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, struct Lsymbol *Lentry, struct ArgStruct *current_arg_list);
 
 struct ArgStruct *ArgInstall(struct ArgStruct *current_arg_list, int variable_type, char *NAME, int PASS_TYPE);
 
