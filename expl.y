@@ -168,36 +168,22 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 		|  {}	// no arguments?
 		;
 
-// TODO: this grammar will create problems on multiple declarations (e.g. integer a, b;)
+// TODO: this grammar will create problems on multiple declarations (e.g. integer a, b;); fix
 
 vbl_declns:	vbl_declns ',' ID {
 
 		// append ID to the beginning of the argument list
 
-		struct ArgStruct *new_arg_list = (struct ArgStruct *) malloc(sizeof(struct ArgStruct));
-		new_arg_list -> TYPE = variable_type;
-		new_arg_list -> NAME = $3 -> NAME;
-		new_arg_list -> NEXT = current_arg_list;
-		new_arg_list -> BINDING = (int *) malloc(sizeof(int));
-		new_arg_list -> ARG_SIM_BINDING = current_arg_binding * -1;	// multiplication with -1 is used to facilitate addition with BP
-		// (arguments will be stored as BP - 1, BP - 2 etc)
-		current_arg_binding++;
-		current_arg_list = new_arg_list;
+		current_arg_list = ArgInstall(current_arg_list, variable_type, $3 -> NAME, PASS_BY_VALUE);
 
 	}
 
 	| ID {
 
-		struct ArgStruct *new_arg_list = (struct ArgStruct *) malloc(sizeof(struct ArgStruct));
-		new_arg_list -> TYPE = variable_type;
-		new_arg_list -> NAME = $1 -> NAME;
-		new_arg_list -> NEXT = current_arg_list;
-		new_arg_list -> BINDING = (int *) malloc(sizeof(int));
-		new_arg_list -> ARG_SIM_BINDING = current_arg_binding * -1;
-		current_arg_binding++;
-		current_arg_list = new_arg_list;
+		current_arg_list = ArgInstall(current_arg_list, variable_type, $1 -> NAME, PASS_BY_VALUE);
 
 	}
+	;
 
 // grammar for the main block (int main() {...})
 MainBlock: type MAIN '(' ')' '{' localDeclarations BEGINNING slist END '}' {
@@ -548,9 +534,23 @@ yyerror(char const *s)
     printf("yyerror, %s: '%s' in line %d\n", s, yytext, yylineno);
 }
 
+struct ArgStruct *ArgInstall(struct ArgStruct *current_arg_list, int variable_type, char *NAME, int PASS_TYPE) {
+	// append ID to the beginning of the argument list
+
+	struct ArgStruct *new_arg_list = (struct ArgStruct *) malloc(sizeof(struct ArgStruct));
+	new_arg_list -> TYPE = variable_type;
+	new_arg_list -> NAME = NAME;
+	new_arg_list -> NEXT = current_arg_list;
+	new_arg_list -> BINDING = (int *) malloc(sizeof(int));
+	new_arg_list -> ARG_SIM_BINDING = current_arg_binding * -1;	// multiplication with -1 is used to facilitate addition with BP
+	// (arguments will be stored as BP - 1, BP - 2 etc)
+	new_arg_list -> PASS_TYPE = PASS_TYPE;
+	current_arg_binding++;
+	return new_arg_list;
+}
 
 int main(int argc, char *argv[]) {
-	if(argc>1)
+	if(argc > 1)
 	{
     	FILE *fp = fopen(argv[1],"r");
     	if(fp)

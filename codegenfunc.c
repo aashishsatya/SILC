@@ -120,12 +120,14 @@ int code_gen(struct Tnode *ptr) {
         // check argument list
         function_arg_list = ArgLookup(ptr -> ArgList, ptr -> Ptr1 -> NAME);
         if (function_arg_list != NULL) {
-          reqd_binding = function_arg_list -> ARG_SIM_BINDING;
+          // check the pass type of the argument
+          if (function_arg_list -> PASS_TYPE == PASS_BY_VALUE)
+            reqd_binding = function_arg_list -> ARG_SIM_BINDING;
         }
       }
       // please be careful about the order of evaluation of the || (and its
       // breakability on finding an answer thereof)
-      if (local_sym_table_ptr != NULL || function_arg_list != NULL) {
+      if (local_sym_table_ptr != NULL || (function_arg_list != NULL && function_arg_list -> PASS_TYPE == PASS_BY_VALUE)) {
         next_register = allocate_register();
         temp = allocate_register();
         fprintf(fp, "MOV R%d, BP\n", next_register);
@@ -190,7 +192,7 @@ int code_gen(struct Tnode *ptr) {
       }
       // please be careful about the order of evaluation of the || (and its
       // breakability on finding an answer thereof)
-      if (local_sym_table_ptr != NULL || function_arg_list != NULL) {
+      if (local_sym_table_ptr != NULL || (function_arg_list != NULL && function_arg_list -> PASS_TYPE == PASS_BY_VALUE)) {
         next_register = allocate_register();
         temp = allocate_register();
         fprintf(fp, "MOV R%d, BP\n", next_register);
@@ -254,7 +256,7 @@ int code_gen(struct Tnode *ptr) {
       }
       // please be careful about the order of evaluation of the || (and its
       // breakability on finding an answer thereof)
-      if (local_sym_table_ptr != NULL || function_arg_list != NULL) {
+      if (local_sym_table_ptr != NULL || (function_arg_list != NULL && function_arg_list -> PASS_TYPE == PASS_BY_VALUE)) {
         next_register = allocate_register();
         temp = allocate_register();
         fprintf(fp, "MOV R%d, BP\n", next_register);

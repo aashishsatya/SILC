@@ -12,6 +12,9 @@
 #define NODETYPE_FUNCTION_DEFINITION 8
 #define NODETYPE_RETURN_STMT 9
 
+#define PASS_BY_VALUE 10
+#define PASS_BY_REFERENCE 11
+
 #include <string.h>
 
 struct Tnode {
@@ -39,6 +42,7 @@ struct ArgStruct {
     int *BINDING; // memory location where the argument is stored
     int ARG_SIM_BINDING;
     struct ArgStruct *NEXT;
+    int PASS_TYPE;
 };
 
 /** Symbol Table Entry is required for variables, arrays and functions**/
@@ -80,6 +84,8 @@ struct Tnode* makeLeafNode(int n);
 
 /*Make a Tnode with opertor, left and right branches set*/
 struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, struct Lsymbol *Lentry);
+
+struct ArgStruct *ArgInstall(struct ArgStruct *current_arg_list, int variable_type, char *NAME, int PASS_TYPE);
 
 /*To evaluate an expression tree*/
 int evaluate(struct Tnode *t);
