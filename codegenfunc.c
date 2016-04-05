@@ -350,13 +350,13 @@ int code_gen(struct Tnode *ptr) {
           }
           else {
             // if it's pass by reference it'll just be an ID
-            local_sym_table_ptr = Llookup(ptr -> Lentry, ptr -> NAME);
+            local_sym_table_ptr = Llookup(ptr -> Lentry, arg_to_evaluate -> Ptr2 -> NAME);
             if (local_sym_table_ptr != NULL) {
               reqd_binding = local_sym_table_ptr -> LOCAL_SIM_BINDING;
             }
             else {
               // check argument list
-              function_arg_list = ArgLookup(ptr -> ArgList, ptr -> NAME);
+              function_arg_list = ArgLookup(ptr -> ArgList, arg_to_evaluate -> Ptr2 -> NAME);
               if (function_arg_list != NULL) {
                 reqd_binding = function_arg_list -> ARG_SIM_BINDING;
               }
@@ -371,11 +371,12 @@ int code_gen(struct Tnode *ptr) {
               fprintf(fp, "MOV R%d, %d\n", rhs, reqd_binding);
               fprintf(fp, "ADD R%d, R%d\n", lhs, rhs);  // R_lhs now contains BP + reqd_binding (which is to be pushed)
               fprintf(fp, "PUSH R%d\n", lhs);
+              no_of_args_pushed++;
               deallocate_register();  // free lhs
               deallocate_register();  // free rhs
             }
             else {
-              symbol_table_ptr = Glookup(ptr -> NAME);
+              symbol_table_ptr = Glookup(arg_to_evaluate -> Ptr2 -> NAME);
               if (ptr -> Ptr1 == NULL) {
                 // ptr is not the ID for an array
                 // the binding required is symbol_table_ptr -> SIM_BINDING
@@ -383,8 +384,10 @@ int code_gen(struct Tnode *ptr) {
                 lhs = allocate_register();
                 fprintf(fp, "MOV R%d, %d\n", lhs, symbol_table_ptr -> SIM_BINDING);
                 fprintf(fp, "PUSH R%d\n", lhs);
+                no_of_args_pushed++;
                 deallocate_register();
               }
+            }
           }
         }
         arg_to_evaluate = arg_to_evaluate -> Ptr1;

@@ -293,6 +293,7 @@ id_list:	id_list ',' ID	{
 	}
 
 	| id_list ',' ID '[' NUM ']' {
+		printf("Installing array %s\n", $3 -> NAME);
 		switch (variable_type) {
 			case VAR_TYPE_INT:
 				// so the variable is of type integer
