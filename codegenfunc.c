@@ -119,10 +119,7 @@ int code_gen(struct Tnode *ptr) {
         // check argument list
         function_arg_list = ArgLookup(ptr -> ArgList, ptr -> Ptr1 -> NAME);
         if (function_arg_list != NULL) {
-          //printf("Name of the argument is %s\n", function_arg_list -> NAME);
-          // check the pass type of the argument
-          if (function_arg_list -> PASS_TYPE == PASS_BY_VALUE)
-            reqd_binding = function_arg_list -> ARG_SIM_BINDING;
+          reqd_binding = function_arg_list -> ARG_SIM_BINDING;
         }
       }
       // please be careful about the order of evaluation of the || (and its
@@ -344,24 +341,54 @@ int code_gen(struct Tnode *ptr) {
       function_arg_list = symbol_table_ptr -> ARGLIST;  // this is needed to check if the arguments are called by value or reference
       while (arg_to_evaluate != NULL) {
         if (arg_to_evaluate -> Ptr2 != NULL) {
-          // can be equal to NULL, say when there is only one argument
-          temp = code_gen(arg_to_evaluate -> Ptr2); // this '... -> Ptr2' is an expr
-          // we are evaluating Ptr1 first because we need the last argument to be pushed in first
-          // the value of expr is now stored in R_temp
-          if (function_arg_list -> PASS_TYPE == PASS_BY_REFERENCE) {
-            // current binding = BP + whatever temp has in it
-            // so push this (BP + value in temp) on to the stack
-            lhs = allocate_register();
-            fprintf(fp, "MOV R%d, BP\n", lhs);
-            fprintf(fp, "ADD R%d, R%d\n", temp, lhs);
-            deallocate_register();  // free lhs
+          if (function_arg_list -> PASS_TYPE == PASS_BY_VALUE) {
+            temp = code_gen(arg_to_evaluate -> Ptr2); // this '... -> Ptr2' is an expr
+            fprintf(fp, "PUSH R%d\n", temp);
+            no_of_args_pushed++;
+            // free R_temp
+            deallocate_register();
           }
-          fprintf(fp, "PUSH R%d\n", temp);
-          no_of_args_pushed++;
-          // free R_temp
-          deallocate_register();
+          else {
+            // if it's pass by reference it'll just be an ID
+            local_sym_table_ptr = Llookup(ptr -> Lentry, ptr -> NAME);
+            if (local_sym_table_ptr != NULL) {
+              reqd_binding = local_sym_table_ptr -> LOCAL_SIM_BINDING;
+            }
+            else {
+              // check argument list
+              function_arg_list = ArgLookup(ptr -> ArgList, ptr -> NAME);
+              if (function_arg_list != NULL) {
+                reqd_binding = function_arg_list -> ARG_SIM_BINDING;
+              }
+            }
+            // please be careful about the order of evaluation of the || (and its
+            // breakability on finding an answer thereof)
+            if (local_sym_table_ptr != NULL || function_arg_list != NULL) {
+              // just push BP + reqd_binding to the stack
+              lhs = allocate_register();
+              rhs = allocate_register();
+              fprintf(fp, "MOV R%d, BP\n", lhs);
+              fprintf(fp, "MOV R%d, %d\n", rhs, reqd_binding);
+              fprintf(fp, "ADD R%d, R%d\n", lhs, rhs);  // R_lhs now contains BP + reqd_binding (which is to be pushed)
+              fprintf(fp, "PUSH R%d\n", lhs);
+              deallocate_register();  // free lhs
+              deallocate_register();  // free rhs
+            }
+            else {
+              symbol_table_ptr = Glookup(ptr -> NAME);
+              if (ptr -> Ptr1 == NULL) {
+                // ptr is not the ID for an array
+                // the binding required is symbol_table_ptr -> SIM_BINDING
+                // so just push it to stack
+                lhs = allocate_register();
+                fprintf(fp, "MOV R%d, %d\n", lhs, symbol_table_ptr -> SIM_BINDING);
+                fprintf(fp, "PUSH R%d\n", lhs);
+                deallocate_register();
+              }
+          }
         }
         arg_to_evaluate = arg_to_evaluate -> Ptr1;
+        function_arg_list = function_arg_list -> NEXT;
       }
       // reserve space for return value
       temp = allocate_register();

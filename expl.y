@@ -240,13 +240,13 @@ MainBlock: type MAIN '(' ')' '{' localDeclarations BEGINNING slist END '}' {
 // here the difference from global declarations is that function declarations are not allowed
 // also you can't declare arrays
 
-localDeclarations:	DECL local_dec_list ENDDECL {}
+localDeclarations:	DECL local_dec_list ENDDECL {};
 
 local_dec_list: local_dec local_dec_list {}
 	| local_dec {}
 	;
 
-local_dec: type local_id_list ';' {}
+local_dec: type local_id_list ';' {};
 
 local_id_list: local_id_list ',' ID {
 		// install this in the LOCAL symbol table for a function
@@ -273,7 +273,7 @@ slist: slist stmt	{$$ = TreeCreate(-1, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, N
 
 // all these are for global variables
 
-declarations: DECL dec_list ENDDECL {}
+declarations: DECL dec_list ENDDECL {};
 
 dec_list: dec dec_list {}
 	| dec {}
@@ -285,7 +285,7 @@ type: INT {variable_type = VAR_TYPE_INT;}
 	| BOOL {variable_type = VAR_TYPE_BOOL;}
 	;
 
-dec: type id_list ';' {}
+dec: type id_list ';' {};
 
 id_list:	id_list ',' ID	{
 		//printf("%s installed as %d\n", $3 -> NAME, variable_type);
