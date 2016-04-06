@@ -58,6 +58,7 @@
 %type <tnode_ptr> ArgListFunctionCall;
 %type <tnode_ptr> LE;
 %type <tnode_ptr> GE;
+%type <int_val> type;
 
 %left PLUS MINUS
 %left MUL DIV
@@ -68,6 +69,11 @@
 // now declarations mean global declarations
 
 start: declarations funcDefnList MainBlock ENDOFFILE	{
+
+		if (no_defined_functions != no_declared_functions) {
+			printf("All declared functions have not been defined, exiting.\n");
+			exit(0);
+		}
 
 		printf("In start...\n");
 
@@ -135,11 +141,27 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 			exit(0);
 		}
 
+		if (no_return_statements == 0) {
+			printf("A return statement is required for function %s, exiting.\n", $2 -> NAME);
+		}
+		else if (no_return_statements != 1) {
+			printf("In function %s: only one return statement is allowed (found %d), exiting.\n", $2 -> NAME, no_return_statements);
+			exit(0);
+		}
+
+		if ($1 != function_return_statement_type) {
+			printf("Function %s returns value of incorrect type, exiting.\n", $2 -> NAME);
+			exit(0);
+		}
+
 		// actually generate the function code
 		// name is needed to look up the local symbol table
 		// $8 will have the slist for functions
 		printf("Creating tree for function definition of %s...\n", $2 -> NAME);
 		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_DEFINITION, -1, $2 -> NAME, NULL, $8, NULL, NULL, current_local_symbol_table);
+
+		no_defined_functions++;
+		no_return_statements = 0;
 
 		// DO NOT FORGET TO SET current_local_symbol_table AS NULL -- BUG OTHERWISE!!
 		current_local_symbol_table = NULL;
@@ -174,20 +196,41 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 // TODO: this grammar will create problems on multiple declarations (e.g. integer a, b;); fix
 
 vbl_declns:	vbl_declns ',' ID {
+		// check if an argument of the same name has already been declared
+		temp = check_if_already_defined(current_arg_list, $3 -> NAME);
+		if (temp == 1) {
+			printf("Arguments of the function declaration have the same name %s, exiting.\n", $3 -> NAME);
+			exit(0);
+		}
 		// append ID to the beginning of the argument list
 		current_arg_list = ArgInstall(current_arg_list, variable_type, $3 -> NAME, PASS_BY_VALUE);
 	}
 
 	|	vbl_declns ',' '&' ID {
+			temp = check_if_already_defined(current_arg_list, $4 -> NAME);
+			if (temp == 1) {
+				printf("Arguments of the function declaration have the same name %s, exiting.\n", $4 -> NAME);
+				exit(0);
+			}
 			// append ID to the beginning of the argument list
 			current_arg_list = ArgInstall(current_arg_list, variable_type, $4 -> NAME, PASS_BY_REFERENCE);
 		}
 
 	| ID {
+		temp = check_if_already_defined(current_arg_list, $1 -> NAME);
+		if (temp == 1) {
+			printf("Arguments of the function declaration have the same name %s, exiting.\n", $1 -> NAME);
+			exit(0);
+		}
 		current_arg_list = ArgInstall(current_arg_list, variable_type, $1 -> NAME, PASS_BY_VALUE);
 	}
 
 	| '&' ID {
+		temp = check_if_already_defined(current_arg_list, $2 -> NAME);
+		if (temp == 1) {
+			printf("Arguments of the function declaration have the same name %s, exiting.\n", $2 -> NAME);
+			exit(0);
+		}
 		current_arg_list = ArgInstall(current_arg_list, variable_type, $2 -> NAME, PASS_BY_REFERENCE);
 	}
 	;
@@ -284,8 +327,8 @@ dec_list: dec dec_list {}
 
 // a declaration is a type followed by a name followed by [], which are optional
 
-type: INT {variable_type = VAR_TYPE_INT;}
-	| BOOL {variable_type = VAR_TYPE_BOOL;}
+type: INT {variable_type = VAR_TYPE_INT; $$ = VAR_TYPE_INT;}
+	| BOOL {variable_type = VAR_TYPE_BOOL; $$ = VAR_TYPE_BOOL;}
 	;
 
 dec: type id_list ';' {};
@@ -339,6 +382,7 @@ id_list:	id_list ',' ID	{
 			// function declaration
 
 			Ginstall($3 -> NAME, variable_type, 0, current_arg_list);	// size is irrelevant here
+			no_declared_functions++;
 			// so is the SIM_BINDING field
 			// but sim_binding value that's used must not be changed, hence the zero for the size
 			current_arg_list = NULL;
@@ -349,6 +393,7 @@ id_list:	id_list ',' ID	{
 	| ID '(' ArgList ')' {
 
 		Ginstall($1 -> NAME, variable_type, 0, current_arg_list);
+		no_declared_functions++;
 		current_arg_list = NULL;
 		current_arg_binding	= 3;
 
@@ -450,6 +495,8 @@ stmt: ID ASGN expr ';'	{
 
 		| RETURN expr ';' {
 			$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_RETURN_STMT, -1, NULL, current_arg_list, $2, NULL, NULL, current_local_symbol_table);
+			function_return_statement_type = $2 -> TYPE;
+			no_return_statements++;
 		}
 		;
 

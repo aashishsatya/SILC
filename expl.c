@@ -415,10 +415,30 @@ void Linstall(struct Lsymbol *local_symbol_table, char *NAME, int TYPE) {
   }
 }
 
+int check_if_already_defined(struct ArgStruct *arg_list, char *NAME) {
+  // check if a variable of the same name already exists in the arguments
+  while (arg_list != NULL) {
+    printf("CHECKING FOR SAME NAME ARGUMENTS...\n");
+    if (strcmp(arg_list -> NAME, NAME) == 0) {
+      // they have the same name
+      //printf("Arguments of the function declaration have the same name %s, exiting.\n", temp_current_arg_list -> NAME);
+      return 1;
+    }
+    arg_list = arg_list -> NEXT;
+  }
+  return 0;
+}
+
 struct ArgStruct *current_arg_list; // stores the current arg list to add to
+struct ArgStruct *temp_current_arg_list; // to check if variables of the same name have already been used
 struct Gsymbol *current_function; // the symbol table entry of the current function that's being handled
 // this will be used to set the ARG_SIM_BINDING field for arguments
 // it's set to three because when we're calculating BP - binding, because of the return value and the
 // return address, an offset of two more comes in
 // hence BP - 1 (say for the first argument) - 2 = BP - 3
 int current_arg_binding = 3;
+int no_declared_functions = 0;
+int no_defined_functions = 0;
+int no_return_statements = 0;
+int function_return_statement_type; // stores the actual type of the return statement (i.e. type of expr in 'return expr')
+int temp; // to be used as and when required
