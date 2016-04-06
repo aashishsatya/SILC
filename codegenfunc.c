@@ -41,7 +41,8 @@ int code_gen(struct Tnode *ptr) {
   int no_of_args_pushed;
   struct Gsymbol *symbol_table_ptr;
   struct Lsymbol *local_sym_table_ptr;
-  struct ArgStruct *function_arg_list = NULL;
+  struct ArgStruct *function_arg_list = NULL; // to check if the current variable is in the declarations list
+  struct ArgStruct *list_of_fn_args = NULL; // to traverse through the declarations list to determine if call by value or reference
   struct Tnode *arg_to_evaluate;
 
   if (ptr == NULL) {
@@ -92,6 +93,18 @@ int code_gen(struct Tnode *ptr) {
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
       fprintf(fp, "LT R%d, R%d\n", lhs, rhs);
+      deallocate_register();  // free rhs
+      return lhs;
+    case LE:
+      lhs = code_gen(ptr -> Ptr1);
+      rhs = code_gen(ptr -> Ptr2);
+      fprintf(fp, "LE R%d, R%d\n", lhs, rhs);
+      deallocate_register();  // free rhs
+      return lhs;
+    case GE:
+      lhs = code_gen(ptr -> Ptr1);
+      rhs = code_gen(ptr -> Ptr2);
+      fprintf(fp, "GE R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
     case NUM:
@@ -319,10 +332,10 @@ int code_gen(struct Tnode *ptr) {
       //printf("Accessing t -> Ptr2...");
       //printf("done.\n");
       code_gen(ptr -> Ptr2);
-      printf("Done valuating next arg in SLIST.\n");
+      //printf("Done evaluating next arg in SLIST.\n");
       return -1;
     case NODETYPE_FUNCTION_CALL:
-      printf("In function call...\n");
+      printf("In function call %s...\n", ptr -> NAME);
       fprintf(fp, "// setting up stack before call to %s\n", ptr -> NAME);
       // push registers
       no_registers_in_use = register_to_use;
@@ -338,10 +351,25 @@ int code_gen(struct Tnode *ptr) {
       fprintf(fp, "// pushing arguments to function calls\n");
       arg_to_evaluate = ptr -> Ptr1;
       symbol_table_ptr = Glookup(ptr -> NAME);
-      function_arg_list = symbol_table_ptr -> ARGLIST;  // this is needed to check if the arguments are called by value or reference
+      printf("Just looked up %s from case NODETYPE_FUNCTION_CALL...\n", ptr -> NAME);
+      list_of_fn_args = symbol_table_ptr -> ARGLIST;  // this is needed to check if the arguments are called by value or reference
+      printf("Arguments associated with this function are:\n");
+      while (list_of_fn_args != NULL) {
+        printf("%s\t", list_of_fn_args -> NAME);
+        list_of_fn_args = list_of_fn_args -> NEXT;
+      }
+      printf("\n");
+      list_of_fn_args = symbol_table_ptr -> ARGLIST;  // this is needed to check if the arguments are called by value or reference
       while (arg_to_evaluate != NULL) {
         if (arg_to_evaluate -> Ptr2 != NULL) {
-          if (function_arg_list -> PASS_TYPE == PASS_BY_VALUE) {
+          if (list_of_fn_args == NULL) {
+            printf("FUNCTION_ARG_LIST SEEMS TO BE NULL!!\n");
+          }
+          else {
+            printf("Corresponding argument is %s...\n", list_of_fn_args -> NAME);
+          }
+          printf("Current arg is %s...\n", arg_to_evaluate -> Ptr2 -> NAME);
+          if (list_of_fn_args -> PASS_TYPE == PASS_BY_VALUE) {
             temp = code_gen(arg_to_evaluate -> Ptr2); // this '... -> Ptr2' is an expr
             fprintf(fp, "PUSH R%d\n", temp);
             no_of_args_pushed++;
@@ -349,7 +377,8 @@ int code_gen(struct Tnode *ptr) {
             deallocate_register();
           }
           else {
-            // if it's pass by reference it'll just be an ID
+            // if it's pass by reference it'll just be an ID or an array reference
+            // check if it's an array reference
             local_sym_table_ptr = Llookup(ptr -> Lentry, arg_to_evaluate -> Ptr2 -> NAME);
             if (local_sym_table_ptr != NULL) {
               reqd_binding = local_sym_table_ptr -> LOCAL_SIM_BINDING;
@@ -377,7 +406,7 @@ int code_gen(struct Tnode *ptr) {
             }
             else {
               symbol_table_ptr = Glookup(arg_to_evaluate -> Ptr2 -> NAME);
-              if (ptr -> Ptr1 == NULL) {
+              if (arg_to_evaluate -> Ptr2 -> Ptr1 == NULL) {
                 // ptr is not the ID for an array
                 // the binding required is symbol_table_ptr -> SIM_BINDING
                 // so just push it to stack
@@ -387,11 +416,25 @@ int code_gen(struct Tnode *ptr) {
                 no_of_args_pushed++;
                 deallocate_register();
               }
+              else {
+                printf("ARRAY REFERENCE OBTAINED!!!!!!!!!!!!!!!\n");
+                // the binding required is otherwise the base address obtained from symbol_table_ptr
+                // added to the expr in the [] of the reference
+                lhs = code_gen(arg_to_evaluate -> Ptr2 -> Ptr1);
+                rhs = allocate_register();
+                fprintf(fp, "MOV R%d, %d\n", rhs, symbol_table_ptr -> SIM_BINDING);
+                fprintf(fp, "ADD R%d, R%d\n", lhs, rhs);
+                fprintf(fp, "PUSH R%d\n", lhs);
+                deallocate_register();
+                deallocate_register();
+                no_of_args_pushed++;
+              }
             }
           }
         }
         arg_to_evaluate = arg_to_evaluate -> Ptr1;
-        function_arg_list = function_arg_list -> NEXT;
+        if (list_of_fn_args != NULL)
+          list_of_fn_args = list_of_fn_args -> NEXT;
       }
       // reserve space for return value
       temp = allocate_register();
