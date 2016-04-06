@@ -9,6 +9,7 @@
 	extern FILE *yyin;
 	extern int yylineno;
 	extern char *yytext;
+	extern int line_no;
 
   //int *var[26];
 	int variable_type;	// this will store the type of the variable that is being processed
@@ -19,7 +20,7 @@
 	struct  Tnode *tnode_ptr;
 }
 
-%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE BEGINNING END MAIN RETURN
+%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE BEGINNING END MAIN RETURN LE GE
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -55,10 +56,12 @@
 %type <tnode_ptr> funcDefn;
 %type <tnode_ptr> RETURN;
 %type <tnode_ptr> ArgListFunctionCall;
+%type <tnode_ptr> LE;
+%type <tnode_ptr> GE;
 
 %left PLUS MINUS
 %left MUL DIV
-%nonassoc LT GT EQ
+%nonassoc LT GT EQ LE GE
 
 %%
 
@@ -530,13 +533,21 @@ expr: expr PLUS expr	{
 	 | expr EQ expr {
 		 $$ = makeOperatorNode(EQ, $1, $3, current_local_symbol_table, current_arg_list);
 	 }
+
+	 | expr LE expr {
+		 $$ = makeOperatorNode(LE, $1, $3, current_local_symbol_table, current_arg_list);
+	 }
+
+	 | expr GE expr {
+		 $$ = makeOperatorNode(GE, $1, $3, current_local_symbol_table, current_arg_list);
+	 }
 	 ;
 
 %%
 
 yyerror(char const *s)
 {
-    printf("yyerror, %s: '%s' in line %d\n", s, yytext, yylineno);
+    printf("yyerror, %s: '%s' in line %d\n", s, yytext, line_no + 1);
 }
 
 int main(int argc, char *argv[]) {

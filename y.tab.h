@@ -72,7 +72,9 @@ extern int yydebug;
     BEGINNING = 282,
     END = 283,
     MAIN = 284,
-    RETURN = 285
+    RETURN = 285,
+    LE = 286,
+    GE = 287
   };
 #endif
 /* Tokens.  */
@@ -104,18 +106,20 @@ extern int yydebug;
 #define END 283
 #define MAIN 284
 #define RETURN 285
+#define LE 286
+#define GE 287
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 17 "expl.y" /* yacc.c:1909  */
+#line 18 "expl.y" /* yacc.c:1909  */
 
 	int int_val;
 	struct  Tnode *tnode_ptr;
 
-#line 119 "y.tab.h" /* yacc.c:1909  */
+#line 123 "y.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

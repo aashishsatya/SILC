@@ -30,6 +30,8 @@ struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, s
         break;
       case LT:
       case GT:
+      case LE:
+      case GE:
       case EQ:
         if (l -> TYPE != VAR_TYPE_INT || r -> TYPE != VAR_TYPE_INT) {
           printf("Incorrect operand type for logical operator, exiting.");
@@ -317,13 +319,13 @@ struct Lsymbol *Llookup(struct Lsymbol *current_lentry, char *NAME) {
 }
 
 struct ArgStruct *ArgLookup(struct ArgStruct *current_args, char *NAME) {
-  printf("Searching for %s among arguments...\n", NAME);
+  //printf("Searching for %s among arguments...\n", NAME);
   while (current_args != NULL) {
     if (strcmp(NAME, current_args -> NAME) == 0) {
-      printf("BINGO!\n");
+      //printf("BINGO!\n");
       return current_args;
     }
-    printf("It's not %s...\n", current_args -> NAME);
+    //printf("It's not %s...\n", current_args -> NAME);
     current_args = current_args -> NEXT;
   }
   return current_args;

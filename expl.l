@@ -3,6 +3,8 @@
 	#include <stdlib.h>
 	#include "y.tab.h"
 	#include "expl.h"
+
+	int line_no = 0;
 %}
 
 whitespaces [ \t]
@@ -11,7 +13,7 @@ NL 	[\n]
 %%
 
 <<EOF>>    	{return ENDOFFILE;} //returns end of file
-{NL}    	;
+{NL}    {line_no++;}
 {whitespaces} ;
 
 [0-9]+  {
@@ -60,6 +62,8 @@ NL 	[\n]
 "/"	{return DIV;}
 "<" {return LT;}
 ">" {return GT;}
+"<=" {return LE;}
+">=" {return GE;}
 "==" {return EQ;}
 [=]  {return ASGN;}
 [();\[\],\{\}\&]	{return *yytext;}
