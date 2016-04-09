@@ -429,8 +429,8 @@ int check_if_already_defined(struct ArgStruct *arg_list, char *NAME) {
   return 0;
 }
 
-struct ArgStruct *current_arg_list; // stores the current arg list to add to
-struct Tnode *current_fn_args;  
+struct ArgStruct *current_arg_list; // current_arg_list will denote the argument list of the current function that we're in
+struct Tnode *current_fn_args;
 struct ArgStruct *temp_current_arg_list; // to check if variables of the same name have already been used
 struct Gsymbol *current_function; // the symbol table entry of the current function that's being handled
 // this will be used to set the ARG_SIM_BINDING field for arguments

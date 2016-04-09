@@ -508,7 +508,7 @@ static const yytype_uint16 yyrline[] =
      309,   316,   317,   322,   324,   325,   330,   331,   334,   336,
      341,   357,   362,   380,   393,   403,   417,   436,   448,   472,
      480,   488,   496,   504,   508,   512,   515,   518,   520,   522,
-     524,   526,   528,   537,   561,   572,   576,   580,   584,   588
+     524,   526,   528,   537,   561,   595,   599,   603,   607,   611
 };
 #endif
 
@@ -1620,7 +1620,7 @@ yyreduce:
 
 		printf("Processing main function...\n");
 		// add main() to the global symbol table
-		Ginstall("main", variable_type, 0, current_arg_list);
+		Ginstall("main", variable_type, 0, NULL);
 		struct Gsymbol *main_symbol_table_entry = Glookup("main");
 		main_symbol_table_entry -> local_sym_table = current_local_symbol_table;
 
@@ -2067,7 +2067,7 @@ yyreduce:
 		 (yyvsp[-3].tnode_ptr) -> Lentry = current_local_symbol_table;
 		 (yyvsp[-3].tnode_ptr) -> TYPE = find_id_type((yyvsp[-3].tnode_ptr));
 		 if ((yyvsp[-1].tnode_ptr) -> TYPE != VAR_TYPE_INT) {
-			 printf("Incorrect type for array index; exiting.\n");
+			 printf("Line %d: incorrect type for array index; exiting.\n", line_no + 1);
 			 exit(0);
 		 }
 		 switch((yyvsp[-3].tnode_ptr) -> TYPE) {
@@ -2095,53 +2095,76 @@ yyreduce:
 			 printf("Error, undeclared function %s\n", (yyvsp[-3].tnode_ptr) -> NAME);
 			 exit(0);
 		 }
+
+		 // check the number of arguments
+
+		 current_fn_args = (yyvsp[-1].tnode_ptr);
+		 temp_current_arg_list = function_call_lookup -> ARGLIST;
+		 while (current_fn_args != NULL) {
+			 if (current_fn_args -> Ptr2 != NULL) {
+				 if (current_fn_args -> Ptr2 -> TYPE != temp_current_arg_list -> TYPE) {
+					 printf("Incorrect argument type for function call %s at line %d, exiting.\n", (yyvsp[-3].tnode_ptr) -> NAME, line_no);
+				 }
+				 printf("Line %d: checking %s against argument %s\n", line_no + 1, current_fn_args -> Ptr2 -> NAME, temp_current_arg_list -> NAME);
+				 current_fn_args = current_fn_args -> Ptr1;
+				 temp_current_arg_list = temp_current_arg_list -> NEXT;
+			 }
+		 }
+
+		 if (temp_current_arg_list != NULL || current_fn_args != NULL) {
+			 printf("temp_current_arg_list has value %s\n", temp_current_arg_list -> NAME);
+			 printf("Incorrect number of arguments in function call %s at line %d, exiting.\n", (yyvsp[-3].tnode_ptr) -> NAME, line_no);
+			 exit(0);
+		 }
+
 		 (yyval.tnode_ptr) = TreeCreate(function_call_lookup -> TYPE, NODETYPE_FUNCTION_CALL, -1, (yyvsp[-3].tnode_ptr) -> NAME, current_arg_list, (yyvsp[-1].tnode_ptr), NULL, NULL, current_local_symbol_table);
+		 //current_arg_list = NULL;
 	 }
-#line 2101 "y.tab.c" /* yacc.c:1646  */
+#line 2124 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 55:
-#line 572 "expl.y" /* yacc.c:1646  */
+#line 595 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(LT, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);
 	 }
-#line 2109 "y.tab.c" /* yacc.c:1646  */
+#line 2132 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 56:
-#line 576 "expl.y" /* yacc.c:1646  */
+#line 599 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(GT, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);
 	 }
-#line 2117 "y.tab.c" /* yacc.c:1646  */
+#line 2140 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 57:
-#line 580 "expl.y" /* yacc.c:1646  */
+#line 603 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(EQ, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);
 	 }
-#line 2125 "y.tab.c" /* yacc.c:1646  */
+#line 2148 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 58:
-#line 584 "expl.y" /* yacc.c:1646  */
+#line 607 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(LE, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);
 	 }
-#line 2133 "y.tab.c" /* yacc.c:1646  */
+#line 2156 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 59:
-#line 588 "expl.y" /* yacc.c:1646  */
+#line 611 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(GE, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);
 	 }
-#line 2141 "y.tab.c" /* yacc.c:1646  */
+#line 2164 "y.tab.c" /* yacc.c:1646  */
     break;
 
 
-#line 2145 "y.tab.c" /* yacc.c:1646  */
+#line 2168 "y.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2369,7 +2392,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 593 "expl.y" /* yacc.c:1906  */
+#line 616 "expl.y" /* yacc.c:1906  */
 
 
 yyerror(char const *s)
