@@ -240,7 +240,7 @@ MainBlock: type MAIN '(' ')' '{' localDeclarations BEGINNING slist END '}' {
 
 		printf("Processing main function...\n");
 		// add main() to the global symbol table
-		Ginstall("main", variable_type, 0, current_arg_list);
+		Ginstall("main", variable_type, 0, NULL);
 		struct Gsymbol *main_symbol_table_entry = Glookup("main");
 		main_symbol_table_entry -> local_sym_table = current_local_symbol_table;
 
@@ -542,7 +542,7 @@ expr: expr PLUS expr	{
 		 $1 -> Lentry = current_local_symbol_table;
 		 $1 -> TYPE = find_id_type($1);
 		 if ($3 -> TYPE != VAR_TYPE_INT) {
-			 printf("Incorrect type for array index; exiting.\n");
+			 printf("Line %d: incorrect type for array index; exiting.\n", line_no + 1);
 			 exit(0);
 		 }
 		 switch($1 -> TYPE) {
@@ -566,7 +566,30 @@ expr: expr PLUS expr	{
 			 printf("Error, undeclared function %s\n", $1 -> NAME);
 			 exit(0);
 		 }
+
+		 // check the number of arguments
+
+		 current_fn_args = $3;
+		 temp_current_arg_list = function_call_lookup -> ARGLIST;
+		 while (current_fn_args != NULL) {
+			 if (current_fn_args -> Ptr2 != NULL) {
+				 if (current_fn_args -> Ptr2 -> TYPE != temp_current_arg_list -> TYPE) {
+					 printf("Incorrect argument type for function call %s at line %d, exiting.\n", $1 -> NAME, line_no);
+				 }
+				 printf("Line %d: checking %s against argument %s\n", line_no + 1, current_fn_args -> Ptr2 -> NAME, temp_current_arg_list -> NAME);
+				 current_fn_args = current_fn_args -> Ptr1;
+				 temp_current_arg_list = temp_current_arg_list -> NEXT;
+			 }
+		 }
+
+		 if (temp_current_arg_list != NULL || current_fn_args != NULL) {
+			 printf("temp_current_arg_list has value %s\n", temp_current_arg_list -> NAME);
+			 printf("Incorrect number of arguments in function call %s at line %d, exiting.\n", $1 -> NAME, line_no);
+			 exit(0);
+		 }
+
 		 $$ = TreeCreate(function_call_lookup -> TYPE, NODETYPE_FUNCTION_CALL, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table);
+		 //current_arg_list = NULL;
 	 }
 
 	 | expr LT expr {
