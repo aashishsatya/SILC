@@ -4,6 +4,7 @@
 
 	#include "y.tab.h"
 	#include "codegenfunc.c"
+	#include "typetables.c"
 
 	int yylex(void);
 	extern FILE *yyin;
@@ -20,7 +21,7 @@
 	struct  Tnode *tnode_ptr;
 }
 
-%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE BEGINNING END MAIN RETURN LE GE
+%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE BEGINNING END MAIN RETURN LE GE TYPEDEF
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -68,7 +69,7 @@
 
 // now declarations mean global declarations
 
-start: declarations funcDefnList MainBlock ENDOFFILE	{
+start: declarations userDataTypeDecln funcDefnList MainBlock ENDOFFILE	{
 
 		if (no_defined_functions != no_declared_functions) {
 			printf("All declared functions have not been defined, exiting.\n");
@@ -95,6 +96,40 @@ start: declarations funcDefnList MainBlock ENDOFFILE	{
 		exit(1);
 	}
 	;
+
+// grammar rules for dealing with new types
+
+userDataTypeDecln: TYPEDEF ID '{' typeDeclarations '}' {
+
+		// install ID to type table
+
+	}
+
+	| 	{}	// no user data type declaration
+	;
+
+typeDeclarations: typeDeclarations type_decln  {
+
+	}
+	;
+
+type_decln: ID user_type_list ';' {
+
+		// the ID corresponds to a data type in the type table
+
+	}
+
+	| {}
+	;
+
+user_type_list: user_type_list ',' ID {
+
+	}
+
+	| ID {}
+	;
+
+// grammar rules for dealing with function definitions
 
 funcDefnList: funcDefnList funcDefn {code_gen($2);}
 	|		{}
