@@ -40,6 +40,7 @@ NL 	[\n]
 "end" {return END;}
 "main" {return MAIN;}
 "return" {return RETURN;}
+"typedef" {return TYPEDEF;}
 
 [a-z][a-zA-Z0-9]* {
 
