@@ -45,10 +45,6 @@ int code_gen(struct Tnode *ptr) {
   struct ArgStruct *list_of_fn_args = NULL; // to traverse through the declarations list to determine if call by value or reference
   struct Tnode *arg_to_evaluate;
 
-  if (ptr == NULL) {
-    printf("Warning: ptr is NULL!!\n");
-  }
-
   //printf("In code_gen...\n");
   //printf("ptr -> TYPE = %d\n", ptr -> TYPE);
   //printf("ASGN = %d\n", ASGN);
@@ -114,7 +110,7 @@ int code_gen(struct Tnode *ptr) {
       return next_register;
       break;
     case ASGN:
-      printf("In ASGN...\n");
+      //printf("In ASGN...\n");
       // simple question of a move
       // but before that you have to write code for your RHS
       fprintf(fp, "// beginning of assignment operation to %s\n", ptr -> Ptr1 -> NAME);
@@ -193,9 +189,6 @@ int code_gen(struct Tnode *ptr) {
       lhs = allocate_register();
       fprintf(fp, "IN R%d\n", lhs);
       // check local symbol table
-      if (ptr -> Lentry == NULL) {
-        printf("Lentry is NULL.\n");
-      }
       local_sym_table_ptr = Llookup(ptr -> Lentry, ptr -> Ptr1 -> NAME);
       if (local_sym_table_ptr != NULL) {
         reqd_binding = local_sym_table_ptr -> LOCAL_SIM_BINDING;
@@ -204,7 +197,7 @@ int code_gen(struct Tnode *ptr) {
         // check argument list
         function_arg_list = ArgLookup(ptr -> ArgList, ptr -> Ptr1 -> NAME);
         if (function_arg_list != NULL) {
-          printf("Required binding = %d\n", function_arg_list -> ARG_SIM_BINDING);
+          //printf("Required binding = %d\n", function_arg_list -> ARG_SIM_BINDING);
           reqd_binding = function_arg_list -> ARG_SIM_BINDING;
         }
       }
@@ -231,9 +224,6 @@ int code_gen(struct Tnode *ptr) {
       else {
         // check global symbol table
         symbol_table_ptr = Glookup(ptr -> Ptr1 -> NAME);
-        if (symbol_table_ptr == NULL) {
-          printf("symbol_table_ptr is NULL, was looking for %s.\n", ptr -> Ptr1 -> NAME);
-        }
         // check if it's an array and generate code for the same
         if (ptr -> Ptr1 -> Ptr1 == NULL) {
           // not an array
@@ -264,9 +254,9 @@ int code_gen(struct Tnode *ptr) {
       // the value of the ID is needed
       // load it into a register for now and return the register value
       lhs = allocate_register();
-      printf("In ID...\n");
+      //printf("In ID...\n");
       // look up the variable
-      printf("Looking up %s\n", ptr -> NAME);
+      //printf("Looking up %s\n", ptr -> NAME);
       local_sym_table_ptr = Llookup(ptr -> Lentry, ptr -> NAME);
       if (local_sym_table_ptr != NULL) {
         reqd_binding = local_sym_table_ptr -> LOCAL_SIM_BINDING;
@@ -335,7 +325,7 @@ int code_gen(struct Tnode *ptr) {
       //printf("Done evaluating next arg in SLIST.\n");
       return -1;
     case NODETYPE_FUNCTION_CALL:
-      printf("In function call %s...\n", ptr -> NAME);
+      //printf("In function call %s...\n", ptr -> NAME);
       fprintf(fp, "// setting up stack before call to %s\n", ptr -> NAME);
       // push registers
       no_registers_in_use = register_to_use;
@@ -351,24 +341,24 @@ int code_gen(struct Tnode *ptr) {
       fprintf(fp, "// pushing arguments to function calls\n");
       arg_to_evaluate = ptr -> Ptr1;
       symbol_table_ptr = Glookup(ptr -> NAME);
-      printf("Just looked up %s from case NODETYPE_FUNCTION_CALL...\n", ptr -> NAME);
+      //printf("Just looked up %s from case NODETYPE_FUNCTION_CALL...\n", ptr -> NAME);
       list_of_fn_args = symbol_table_ptr -> ARGLIST;  // this is needed to check if the arguments are called by value or reference
-      printf("Arguments associated with this function are:\n");
-      while (list_of_fn_args != NULL) {
-        printf("%s\t", list_of_fn_args -> NAME);
-        list_of_fn_args = list_of_fn_args -> NEXT;
-      }
-      printf("\n");
+      //printf("Arguments associated with this function are:\n");
+      //while (list_of_fn_args != NULL) {
+      //  printf("%s\t", list_of_fn_args -> NAME);
+    //    list_of_fn_args = list_of_fn_args -> NEXT;
+      //}
+      //printf("\n");
       list_of_fn_args = symbol_table_ptr -> ARGLIST;  // this is needed to check if the arguments are called by value or reference
       while (arg_to_evaluate != NULL) {
         if (arg_to_evaluate -> Ptr2 != NULL) {
-          if (list_of_fn_args == NULL) {
-            printf("FUNCTION_ARG_LIST SEEMS TO BE NULL!!\n");
+          /*if (list_of_fn_args == NULL) {
+            //printf("FUNCTION_ARG_LIST SEEMS TO BE NULL!!\n");
           }
           else {
             printf("Corresponding argument is %s...\n", list_of_fn_args -> NAME);
           }
-          printf("Current arg is %s...\n", arg_to_evaluate -> Ptr2 -> NAME);
+          printf("Current arg is %s...\n", arg_to_evaluate -> Ptr2 -> NAME);*/
           if (list_of_fn_args -> PASS_TYPE == PASS_BY_VALUE) {
             temp = code_gen(arg_to_evaluate -> Ptr2); // this '... -> Ptr2' is an expr
             fprintf(fp, "PUSH R%d\n", temp);
@@ -417,7 +407,7 @@ int code_gen(struct Tnode *ptr) {
                 deallocate_register();
               }
               else {
-                printf("ARRAY REFERENCE OBTAINED!!!!!!!!!!!!!!!\n");
+                //printf("ARRAY REFERENCE OBTAINED!!!!!!!!!!!!!!!\n");
                 // the binding required is otherwise the base address obtained from symbol_table_ptr
                 // added to the expr in the [] of the reference
                 lhs = code_gen(arg_to_evaluate -> Ptr2 -> Ptr1);
@@ -468,9 +458,9 @@ int code_gen(struct Tnode *ptr) {
       break;
     case NODETYPE_FUNCTION_DEFINITION:
       no_local_vbls_pushed = 0;
-      printf("Dealing with function definition %s\n", ptr -> NAME);
+      //printf("Dealing with function definition %s\n", ptr -> NAME);
       fprintf(fp, "%s:\n", ptr -> NAME);
-      printf("...done dealing.\n");
+      //printf("...done dealing.\n");
       fprintf(fp, "PUSH BP\n");
       fprintf(fp, "MOV BP, SP\n");
       // push the local variables
@@ -500,7 +490,7 @@ int code_gen(struct Tnode *ptr) {
       // clear the stack contents
       fprintf(fp, "// deallocate space given to local variables\n");
       fprintf(fp, "MOV R%d, SP\n", lhs);
-      printf("no_local_vbls_pushed = %d\n", no_local_vbls_pushed);
+      //printf("no_local_vbls_pushed = %d\n", no_local_vbls_pushed);
       fprintf(fp, "MOV R%d, %d\n", rhs, no_local_vbls_pushed);
       fprintf(fp, "SUB R%d, R%d\n", lhs, rhs);  // R_lhs now contains the number of local variables pushed
       fprintf(fp, "MOV SP, R%d\n", lhs);
@@ -519,10 +509,10 @@ int code_gen(struct Tnode *ptr) {
       local_label_counter = label_counter;
       fprintf(fp, "JZ R%d, L%d\n", lhs, local_label_counter);
       // print out instrutions to be executed on condition being true
-      printf("Generating instructions for IF true condn...\n");
+      //printf("Generating instructions for IF true condn...\n");
       code_gen(ptr -> Ptr2);
       // print out the label to resume execution otherwise
-      printf("...done.\n");
+      //printf("...done.\n");
       fprintf(fp, "L%d:\n", local_label_counter);
       deallocate_register();  // free lhs
       return -1;
