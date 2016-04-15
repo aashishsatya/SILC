@@ -261,7 +261,7 @@ struct Gsymbol *Glookup(char *NAME) // Look up for a global identifier
     return temp;
 }
 
-int sim_binding = 1000;  // this variable will denote the next FREE memory location
+int sim_binding = 1024;  // this variable will denote the next FREE memory location
 
 void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Installation
 {
@@ -418,7 +418,7 @@ void Linstall(struct Lsymbol *local_symbol_table, char *NAME, int TYPE) {
 int check_if_already_defined(struct ArgStruct *arg_list, char *NAME) {
   // check if a variable of the same name already exists in the arguments
   while (arg_list != NULL) {
-    printf("CHECKING FOR SAME NAME ARGUMENTS...\n");
+    //printf("CHECKING FOR SAME NAME ARGUMENTS...\n");
     if (strcmp(arg_list -> NAME, NAME) == 0) {
       // they have the same name
       //printf("Arguments of the function declaration have the same name %s, exiting.\n", temp_current_arg_list -> NAME);

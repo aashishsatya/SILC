@@ -19,6 +19,7 @@
 %union {
 	int int_val;
 	struct  Tnode *tnode_ptr;
+	struct Fieldlist *fields_ptr;
 }
 
 %token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE BEGINNING END MAIN RETURN LE GE TYPEDEF
@@ -99,34 +100,60 @@ start: declarations userDataTypeDecln funcDefnList MainBlock ENDOFFILE	{
 
 // grammar rules for dealing with new types
 
-userDataTypeDecln: TYPEDEF ID '{' typeDeclarations '}' {
+userDataTypeDecln: userDataTypeDecln dataTypeDecln {
+
+		// add dataTypeDecln to type table
+
+	}
+
+	|  {}	// no user data types have been declared
+	;
+
+dataTypeDecln: TYPEDEF ID '{' fieldDeclarations '}' {
 
 		// install ID to type table
-
-	}
-
-	| 	{}	// no user data type declaration
-	;
-
-typeDeclarations: typeDeclarations type_decln  {
+		Tinstall($2 -> NAME, current_flist);
+		current_flist = NULL;	// because the next time code reaches here it will be a different type definition
 
 	}
 	;
 
-type_decln: ID user_type_list ';' {
+fieldDeclarations: fieldDeclarations field_decln  {
 
-		// the ID corresponds to a data type in the type table
+		// add type_decln to fields list (current_flist)
 
 	}
 
-	| {}
+	| field_decln {
+
+	}
+	;
+
+field_decln: ID user_type_list ';' {
+
+		// check the ID corresponds to a data type in the type table
+		struct Typetable *tt_entry = Tlookup($1 -> NAME);
+		if (tt_entry == NULL) {
+			printf("Line %d: undefined data type %s, exiting.\n", line_no + 1, $1 -> NAME);
+		}
+		// current_flist will not have the field 'type' initialized because this information
+		// is available only now
+		// so initialize the field
+		temp_flist = current_flist;
+		while (temp_flist != NULL) {
+			temp_flist -> type = tt_entry;
+			temp_flist = temp_flist -> next;
+		}
+	}
 	;
 
 user_type_list: user_type_list ',' ID {
-
+		current_flist = Finstall($3 -> NAME);
 	}
 
-	| ID {}
+	| ID {
+		current_flist = Finstall($1 -> NAME);
+	}
 	;
 
 // grammar rules for dealing with function definitions
@@ -157,8 +184,8 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 		// parsed can simply set this variable (see below rule) and continue
 
 		while (temp_decln_arglist != NULL && temp_defn_arglist != NULL) {
-			printf("Stored parameter of name %s\n", temp_decln_arglist -> NAME);
-			printf("Its argument binding is %d\n", temp_decln_arglist -> ARG_SIM_BINDING);
+			//printf("Stored parameter of name %s\n", temp_decln_arglist -> NAME);
+			//printf("Its argument binding is %d\n", temp_decln_arglist -> ARG_SIM_BINDING);
 			if (strcmp(temp_decln_arglist -> NAME, temp_defn_arglist -> NAME) != 0) {
 				printf("Arguments in declaration and definition of function %s are not the same type, exiting.\n", $2 -> NAME);
 				exit(0);
@@ -192,7 +219,7 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 		// actually generate the function code
 		// name is needed to look up the local symbol table
 		// $8 will have the slist for functions
-		printf("Creating tree for function definition of %s...\n", $2 -> NAME);
+		//printf("Creating tree for function definition of %s...\n", $2 -> NAME);
 		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_DEFINITION, -1, $2 -> NAME, NULL, $8, NULL, NULL, current_local_symbol_table);
 
 		no_defined_functions++;
@@ -332,12 +359,12 @@ local_dec: type local_id_list ';' {};
 local_id_list: local_id_list ',' ID {
 		// install this in the LOCAL symbol table for a function
 		Linstall(current_local_symbol_table, $3 -> NAME, variable_type);
-		printf("Installed variable %s\n", $3 -> NAME);
+		//printf("Installed variable %s\n", $3 -> NAME);
 	}
 
 	| ID {
 		Linstall(current_local_symbol_table, $1 -> NAME, variable_type);
-		printf("Installed variable %s\n", $1 -> NAME);
+		//printf("Installed variable %s\n", $1 -> NAME);
 	}
 	;
 
@@ -611,7 +638,7 @@ expr: expr PLUS expr	{
 				 if (current_fn_args -> Ptr2 -> TYPE != temp_current_arg_list -> TYPE) {
 					 printf("Incorrect argument type for function call %s at line %d, exiting.\n", $1 -> NAME, line_no);
 				 }
-				 printf("Line %d: checking %s against argument %s\n", line_no + 1, current_fn_args -> Ptr2 -> NAME, temp_current_arg_list -> NAME);
+				 //printf("Line %d: checking %s against argument %s\n", line_no + 1, current_fn_args -> Ptr2 -> NAME, temp_current_arg_list -> NAME);
 				 current_fn_args = current_fn_args -> Ptr1;
 				 temp_current_arg_list = temp_current_arg_list -> NEXT;
 			 }

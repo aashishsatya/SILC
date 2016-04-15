@@ -120,8 +120,9 @@ union YYSTYPE
 
 	int int_val;
 	struct  Tnode *tnode_ptr;
+	struct Fieldlist *fields_ptr;
 
-#line 125 "y.tab.h" /* yacc.c:1909  */
+#line 126 "y.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
