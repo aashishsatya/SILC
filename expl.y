@@ -70,7 +70,7 @@
 
 // now declarations mean global declarations
 
-start: declarations userDataTypeDecln funcDefnList MainBlock ENDOFFILE	{
+start: userDataTypeDecln declarations funcDefnList MainBlock ENDOFFILE	{
 
 		if (no_defined_functions != no_declared_functions) {
 			printf("All declared functions have not been defined, exiting.\n");
@@ -113,6 +113,12 @@ dataTypeDecln: TYPEDEF ID '{' fieldDeclarations '}' {
 
 		// install ID to type table
 		Tinstall($2 -> NAME, current_flist);
+
+		printf("ID'ed data type %s\n", $2 -> NAME);
+		temp_flist = current_flist;
+		while (temp_flist) {
+			printf("Stored variable %s of type %s\n", temp_flist -> name, temp_flist -> type -> name);
+		}
 		current_flist = NULL;	// because the next time code reaches here it will be a different type definition
 
 	}
@@ -130,7 +136,6 @@ fieldDeclarations: fieldDeclarations field_decln  {
 	;
 
 field_decln: ID user_type_list ';' {
-
 		// check the ID corresponds to a data type in the type table
 		struct Typetable *tt_entry = Tlookup($1 -> NAME);
 		if (tt_entry == NULL) {
@@ -144,6 +149,14 @@ field_decln: ID user_type_list ';' {
 			temp_flist -> type = tt_entry;
 			temp_flist = temp_flist -> next;
 		}
+	}
+
+	| INTEGER user_type_list ';' {
+
+	}
+
+	| BOOLEAN user_type_list ';' {
+
 	}
 	;
 
@@ -515,7 +528,7 @@ stmt: ID ASGN expr ';'	{
 			// this is READ for arrays
 			// reason why you can't have READ(expr) (similar to WRITE below)
 			// is because READ can only read into VARIABLES (and not expressions).
-			// any statements of the form read(a + b + c) (which is an expr) is
+			// e.g. any statements of the form read(a + b + c) (which is an expr) is
 			// wrong, but write(a + b + c) works
 
 			// but before all that check the type of variables
