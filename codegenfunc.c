@@ -25,7 +25,7 @@ void deallocate_register() {
 
 int code_gen(struct Tnode *ptr) {
 
-  // note that these variables absolutely have to be local
+  // note that (most of) these variables absolutely have to be local
   // otherwise recursion will result in overwriting valid values
   // (of variables such as, say lhs)
 

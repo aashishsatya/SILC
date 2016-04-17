@@ -1,7 +1,10 @@
 // these have also been reused for statement types
 
-#define VAR_TYPE_BOOL 0
-#define VAR_TYPE_BOOL_ARR 1
+#define FALSE 0
+#define TRUE 1
+
+#define VAR_TYPE_BOOL 12
+#define VAR_TYPE_BOOL_ARR 13
 #define VAR_TYPE_INT 2
 #define VAR_TYPE_INT_ARR 3
 #define VAR_TYPE_VOID 4
@@ -32,6 +35,7 @@ struct Tnode {
   /* Maximum of three subtrees (3 required for IF THEN ELSE) */
   struct Gsymbol *Gentry; // For global identifiers/functions
   struct Lsymbol *Lentry; // For Local variables
+  int array_or_not;
 };
 
 // structure for storing details about function argument
@@ -58,11 +62,12 @@ struct Gsymbol {
   /***Argstruct must store the name and type of each argument ***/
   struct Gsymbol *NEXT; // Pointer to next Symbol Table Entry */
   struct Lsymbol *local_sym_table; // will correspond to the local symbol table entries of that particular function
+  int array_or_not; // to type check array references
 };
 
 struct Gsymbol *Glookup(char *NAME); // Look up for a global identifier
 
-void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST); // Installation
+void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST, int array_or_not); // Installation
 
 struct Lsymbol {
 /* Here only name, type, binding and pointer to next entry needed */
@@ -77,7 +82,7 @@ struct Lsymbol *Llookup(struct Lsymbol *local_symbol_table, char *NAME);
 
 void Linstall(struct Lsymbol *current_local_symbol_table, char *NAME, int TYPE);
 
-struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3, struct Lsymbol *Lentry);
+struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3, struct Lsymbol *Lentry, int array_or_not);
 
 /*Make a leaf Tnode and set the value of val field*/
 struct Tnode* makeLeafNode(int n);

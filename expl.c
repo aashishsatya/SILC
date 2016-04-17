@@ -26,7 +26,7 @@ struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, s
           printf("Incorrect operand type for arithmetic operator, exiting.");
           exit(0);
         }
-        temp = TreeCreate(VAR_TYPE_INT, OPERATOR, -1, NULL, current_arg_list, l, r, NULL, Lentry);
+        temp = TreeCreate(VAR_TYPE_INT, OPERATOR, -1, NULL, current_arg_list, l, r, NULL, Lentry, FALSE);
         break;
       case LT:
       case GT:
@@ -37,7 +37,7 @@ struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, s
           printf("Incorrect operand type for logical operator, exiting.");
           exit(0);
         }
-        temp = TreeCreate(VAR_TYPE_BOOL, OPERATOR, -1, NULL, current_arg_list, l, r, NULL, Lentry);
+        temp = TreeCreate(VAR_TYPE_BOOL, OPERATOR, -1, NULL, current_arg_list, l, r, NULL, Lentry, FALSE);
         break;
       default:
         printf("Unrecognized operator, exiting.\n");
@@ -46,7 +46,7 @@ struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, s
     return temp;
 }
 
-struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3, struct Lsymbol *Lentry) {
+struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3, struct Lsymbol *Lentry, int array_or_not) {
 
   struct Tnode *temp;
   temp = (struct Tnode*) malloc(sizeof(struct Tnode));
@@ -68,6 +68,7 @@ struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct A
   temp -> Ptr2 = Ptr2;
   temp -> Ptr3 = Ptr3;
   temp -> Lentry = Lentry;
+  temp -> array_or_not = array_or_not;
 
   return temp;
 }
@@ -263,7 +264,7 @@ struct Gsymbol *Glookup(char *NAME) // Look up for a global identifier
 
 int sim_binding = 1024;  // this variable will denote the next FREE memory location
 
-void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Installation
+void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST, int array_or_not) // Installation
 {
 
   // check if the variable name has already been used
@@ -284,6 +285,7 @@ void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST) // Inst
   new_entry -> SIZE = SIZE;
   //printf("new_entry -> SIZE: %d\n", new_entry -> SIZE);
   new_entry -> ARGLIST = ARGLIST;
+  new_entry -> array_or_not = array_or_not;
   new_entry -> NEXT = NULL;
 
   // allocate space for the new entry

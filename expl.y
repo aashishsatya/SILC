@@ -150,14 +150,6 @@ field_decln: ID user_type_list ';' {
 			temp_flist = temp_flist -> next;
 		}
 	}
-
-	| INTEGER user_type_list ';' {
-
-	}
-
-	| BOOLEAN user_type_list ';' {
-
-	}
 	;
 
 user_type_list: user_type_list ',' ID {
@@ -233,7 +225,7 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 		// name is needed to look up the local symbol table
 		// $8 will have the slist for functions
 		//printf("Creating tree for function definition of %s...\n", $2 -> NAME);
-		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_DEFINITION, -1, $2 -> NAME, NULL, $8, NULL, NULL, current_local_symbol_table);
+		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_DEFINITION, -1, $2 -> NAME, NULL, $8, NULL, NULL, current_local_symbol_table, FALSE);
 
 		no_defined_functions++;
 		no_return_statements = 0;
@@ -315,7 +307,7 @@ MainBlock: type MAIN '(' ')' '{' localDeclarations BEGINNING slist END '}' {
 
 		printf("Processing main function...\n");
 		// add main() to the global symbol table
-		Ginstall("main", variable_type, 0, NULL);
+		Ginstall("main", variable_type, 0, NULL, FALSE);
 		struct Gsymbol *main_symbol_table_entry = Glookup("main");
 		main_symbol_table_entry -> local_sym_table = current_local_symbol_table;
 
@@ -331,7 +323,7 @@ MainBlock: type MAIN '(' ')' '{' localDeclarations BEGINNING slist END '}' {
 			}
 		}
 
-		struct Tnode *main_defn = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_DEFINITION, -1, "main", NULL, $8, NULL, NULL, current_local_symbol_table);
+		struct Tnode *main_defn = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_DEFINITION, -1, "main", NULL, $8, NULL, NULL, current_local_symbol_table, FALSE);
 		code_gen(main_defn);
 
 		fprintf(fp, "START\n");
@@ -388,7 +380,7 @@ funcBody: BEGINNING slist END {
 	}
 	;
 
-slist: slist stmt	{$$ = TreeCreate(-1, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, NULL, current_local_symbol_table);}
+slist: slist stmt	{$$ = TreeCreate(-1, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, NULL, current_local_symbol_table, FALSE);}
 	| stmt	{$$ = $1;}
 	;
 
@@ -410,7 +402,7 @@ dec: type id_list ';' {};
 
 id_list:	id_list ',' ID	{
 		//printf("%s installed as %d\n", $3 -> NAME, variable_type);
-		Ginstall($3 -> NAME, variable_type, 1, NULL);
+		Ginstall($3 -> NAME, variable_type, 1, NULL, FALSE);
 	}
 
 	| id_list ',' ID '[' NUM ']' {
@@ -420,17 +412,17 @@ id_list:	id_list ',' ID	{
 				// so the variable is of type integer
 				// but it's an array
 				// so install it as such
-				Ginstall($3 -> NAME, VAR_TYPE_INT_ARR, $5 -> VALUE, NULL);
+				Ginstall($3 -> NAME, VAR_TYPE_INT_ARR, $5 -> VALUE, NULL, TRUE);
 				break;
 			case VAR_TYPE_BOOL:
 				// ditto
-				Ginstall($3 -> NAME, VAR_TYPE_BOOL_ARR, $5 -> VALUE, NULL);
+				Ginstall($3 -> NAME, VAR_TYPE_BOOL_ARR, $5 -> VALUE, NULL, TRUE);
 				break;
 		}
 	}
 
 	|	ID {
-		Ginstall($1 -> NAME, variable_type, 1, NULL);
+		Ginstall($1 -> NAME, variable_type, 1, NULL, FALSE);
 		//printf("%s installed as standalone variable\n", $1 -> NAME);
 	}
 
@@ -441,12 +433,12 @@ id_list:	id_list ',' ID	{
 				// but it's an array
 				// so install it as such
 				//variable_type = VAR_TYPE_INT_ARR;
-				Ginstall($1 -> NAME, VAR_TYPE_INT_ARR, $3 -> VALUE, NULL);
+				Ginstall($1 -> NAME, VAR_TYPE_INT_ARR, $3 -> VALUE, NULL, TRUE);
 				break;
 			case VAR_TYPE_BOOL:
 				// ditto
 				//variable_type = VAR_TYPE_BOOL_ARR;
-				Ginstall($1 -> NAME, VAR_TYPE_BOOL_ARR, $3 -> VALUE, NULL);
+				Ginstall($1 -> NAME, VAR_TYPE_BOOL_ARR, $3 -> VALUE, NULL, TRUE);
 				break;
 		}
 		//printf("%s installed as array\n", $1 -> NAME);
@@ -456,7 +448,7 @@ id_list:	id_list ',' ID	{
 
 			// function declaration
 
-			Ginstall($3 -> NAME, variable_type, 0, current_arg_list);	// size is irrelevant here
+			Ginstall($3 -> NAME, variable_type, 0, current_arg_list, FALSE);	// size is irrelevant here
 			no_declared_functions++;
 			// so is the SIM_BINDING field
 			// but sim_binding value that's used must not be changed, hence the zero for the size
@@ -467,7 +459,7 @@ id_list:	id_list ',' ID	{
 
 	| ID '(' ArgList ')' {
 
-		Ginstall($1 -> NAME, variable_type, 0, current_arg_list);
+		Ginstall($1 -> NAME, variable_type, 0, current_arg_list, FALSE);
 		no_declared_functions++;
 		current_arg_list = NULL;
 		current_arg_binding	= 3;
@@ -486,7 +478,7 @@ stmt: ID ASGN expr ';'	{
 				printf("Inconsistent types for assignment; exiting.\n");
 				exit(0);
 			}
-			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, $1, $3, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, $1, $3, NULL, current_local_symbol_table, FALSE);
 		}
 
 		| ID '[' expr ']' ASGN expr ';' {
@@ -503,9 +495,9 @@ stmt: ID ASGN expr ';'	{
 				printf("Inconsistent types for assignment; exiting.\n");
 				exit(0);
 			}
-			struct Tnode *new_id_node = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL, current_local_symbol_table);
+			struct Tnode *new_id_node = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL, current_local_symbol_table, FALSE);
 			////printf("Making ID array node\n");
-			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, new_id_node, $6, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, new_id_node, $6, NULL, current_local_symbol_table, FALSE);
 		}
 
 		| READ '(' ID ')' ';'	{
@@ -517,7 +509,7 @@ stmt: ID ASGN expr ';'	{
  			 printf("READ variable is of incorrect type; exiting.\n");
  			 exit(0);
  		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 		}
 
 		| READ '(' ID '[' expr ']' ')' ';'	{
@@ -540,8 +532,8 @@ stmt: ID ASGN expr ';'	{
 				printf("Incorrect index type for array; exiting.\n");
 				exit(0);
 			}
-			struct Tnode *new_id_node = TreeCreate(-1, ID, -1, $3 -> NAME, NULL, $5, NULL, NULL, current_local_symbol_table);
-			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, current_arg_list, new_id_node, NULL, NULL, current_local_symbol_table);
+			struct Tnode *new_id_node = TreeCreate(-1, ID, -1, $3 -> NAME, NULL, $5, NULL, NULL, current_local_symbol_table, FALSE);
+			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, current_arg_list, new_id_node, NULL, NULL, current_local_symbol_table, FALSE);
 		}
 
 		| WRITE '(' expr ')' ';' {
@@ -549,7 +541,7 @@ stmt: ID ASGN expr ';'	{
  			 printf("WRITE variable is of incorrect type; exiting.\n");
  			 exit(0);
  		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, WRITE, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, WRITE, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 		}
 
 		| IF '(' expr ')' THEN slist ENDIF ';' {
@@ -557,7 +549,7 @@ stmt: ID ASGN expr ';'	{
  			 printf("Incorrect type for if condition statement; exiting.\n");
  			 exit(0);
  		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, IF, -1, NULL, current_arg_list, $3, $6, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, IF, -1, NULL, current_arg_list, $3, $6, NULL, current_local_symbol_table, FALSE);
 		}
 
 		| WHILE '(' expr ')' DO slist ENDWHILE ';' {
@@ -565,11 +557,11 @@ stmt: ID ASGN expr ';'	{
  			 printf("Incorrect type for while loop condition; exiting.\n");
  			 exit(0);
  		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, WHILE, -1, NULL, current_arg_list, $3, $6, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, WHILE, -1, NULL, current_arg_list, $3, $6, NULL, current_local_symbol_table, FALSE);
 		}
 
 		| RETURN expr ';' {
-			$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_RETURN_STMT, -1, NULL, current_arg_list, $2, NULL, NULL, current_local_symbol_table);
+			$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_RETURN_STMT, -1, NULL, current_arg_list, $2, NULL, NULL, current_local_symbol_table, FALSE);
 			function_return_statement_type = $2 -> TYPE;
 			no_return_statements++;
 		}
@@ -577,11 +569,11 @@ stmt: ID ASGN expr ';'	{
 
 // the arguments to functions can be
 ArgListFunctionCall:	ArgListFunctionCall ',' expr {
-		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, current_arg_list, $1, $3, NULL, NULL);
+		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, current_arg_list, $1, $3, NULL, NULL, FALSE);
 	}
 
 	|	expr {
-		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, current_arg_list, NULL, $1, NULL, NULL);
+		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, current_arg_list, NULL, $1, NULL, NULL, FALSE);
 	}
 
 	|  {}	// no arguments
@@ -596,7 +588,7 @@ expr: expr PLUS expr	{
 
 	 | expr DIV expr	{$$ = makeOperatorNode(DIV, $1, $3, current_local_symbol_table, current_arg_list);}
 
-	 | '(' expr ')'		{$$ = TreeCreate($2 -> TYPE, PARENS, -1, NULL, NULL, $2, NULL, NULL, current_local_symbol_table);}
+	 | '(' expr ')'		{$$ = TreeCreate($2 -> TYPE, PARENS, -1, NULL, NULL, $2, NULL, NULL, current_local_symbol_table, FALSE);}
 
 	 | NUM			{$$ = $1;}
 
@@ -622,10 +614,10 @@ expr: expr PLUS expr	{
 		 }
 		 switch($1 -> TYPE) {
 			 case VAR_TYPE_INT_ARR:
-			 	$$ = TreeCreate(VAR_TYPE_INT, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table);
+			 	$$ = TreeCreate(VAR_TYPE_INT, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 				break;
 			 case VAR_TYPE_BOOL_ARR:
-			 	$$ = TreeCreate(VAR_TYPE_BOOL, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table);
+			 	$$ = TreeCreate(VAR_TYPE_BOOL, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 				break;
 			 default:
 			  printf("Trying to index into a non-array variable %s; exiting.\n", $1 -> NAME);
@@ -663,7 +655,7 @@ expr: expr PLUS expr	{
 			 exit(0);
 		 }
 
-		 $$ = TreeCreate(function_call_lookup -> TYPE, NODETYPE_FUNCTION_CALL, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table);
+		 $$ = TreeCreate(function_call_lookup -> TYPE, NODETYPE_FUNCTION_CALL, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 		 //current_arg_list = NULL;
 	 }
 
