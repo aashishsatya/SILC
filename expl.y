@@ -4,7 +4,6 @@
 
 	#include "y.tab.h"
 	#include "codegenfunc.c"
-	#include "typetables.c"
 
 	int yylex(void);
 	extern FILE *yyin;
@@ -13,13 +12,14 @@
 	extern int line_no;
 
   //int *var[26];
-	int variable_type;	// this will store the type of the variable that is being processed
+	struct Typetable *variable_type;	// this will store the type of the variable that is being processed
 %}
 
 %union {
 	int int_val;
 	struct  Tnode *tnode_ptr;
 	struct Fieldlist *fields_ptr;
+	struct Typetable *type_entry;
 }
 
 %token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE BEGINNING END MAIN RETURN LE GE TYPEDEF
@@ -60,7 +60,7 @@
 %type <tnode_ptr> ArgListFunctionCall;
 %type <tnode_ptr> LE;
 %type <tnode_ptr> GE;
-%type <int_val> type;
+%type <type_entry> type;
 
 %left PLUS MINUS
 %left MUL DIV
@@ -70,7 +70,7 @@
 
 // now declarations mean global declarations
 
-start: userDataTypeDecln declarations funcDefnList MainBlock ENDOFFILE	{
+start: starterCode userDataTypeDecln declarations funcDefnList MainBlock ENDOFFILE	{
 
 		if (no_defined_functions != no_declared_functions) {
 			printf("All declared functions have not been defined, exiting.\n");
@@ -98,6 +98,14 @@ start: userDataTypeDecln declarations funcDefnList MainBlock ENDOFFILE	{
 	}
 	;
 
+starterCode: {
+	// this code was just meant to initialize TypeTableCreate()
+	if (VAR_TYPE_INT == NULL) {
+		printf("TypeTableCreate called by starter code.\n");
+		TypeTableCreate();
+	}
+}
+
 // grammar rules for dealing with new types
 
 userDataTypeDecln: userDataTypeDecln dataTypeDecln {
@@ -109,7 +117,7 @@ userDataTypeDecln: userDataTypeDecln dataTypeDecln {
 	|  {}	// no user data types have been declared
 	;
 
-dataTypeDecln: TYPEDEF ID '{' fieldDeclarations '}' {
+dataTypeDecln: TYPEDEF dataTypeName '{' fieldDeclarations '}' {
 
 		// install ID to type table
 		Tinstall($2 -> NAME, current_flist);
@@ -123,6 +131,14 @@ dataTypeDecln: TYPEDEF ID '{' fieldDeclarations '}' {
 
 	}
 	;
+
+dataTypeName: ID {
+		if (currently_defined_type == NULL) {
+			currently_defined_type = (char *) malloc(sizeof(char) * 30);
+			strcpy(currently_defined_type, $1 -> NAME);
+		}
+		$$ = $1;
+	};
 
 fieldDeclarations: fieldDeclarations field_decln  {
 
@@ -138,8 +154,12 @@ fieldDeclarations: fieldDeclarations field_decln  {
 field_decln: ID user_type_list ';' {
 		// check the ID corresponds to a data type in the type table
 		struct Typetable *tt_entry = Tlookup($1 -> NAME);
-		if (tt_entry == NULL) {
+		if (tt_entry == NULL && strcmp($1 -> NAME, currently_defined_type) != 0) {
 			printf("Line %d: undefined data type %s, exiting.\n", line_no + 1, $1 -> NAME);
+		}
+		else if (strcmp($1 -> NAME, currently_defined_type) == 0) {
+			// we're dealing with a self-referential data type
+			// DO SOMETHING HERE
 		}
 		// current_flist will not have the field 'type' initialized because this information
 		// is available only now
@@ -380,7 +400,7 @@ funcBody: BEGINNING slist END {
 	}
 	;
 
-slist: slist stmt	{$$ = TreeCreate(-1, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, NULL, current_local_symbol_table, FALSE);}
+slist: slist stmt	{$$ = TreeCreate(NULL, NODETYPE_SLIST, -1, NULL, NULL, $1, $2, NULL, current_local_symbol_table, FALSE);}
 	| stmt	{$$ = $1;}
 	;
 
@@ -407,6 +427,7 @@ id_list:	id_list ',' ID	{
 
 	| id_list ',' ID '[' NUM ']' {
 		printf("Installing array %s\n", $3 -> NAME);
+		$5 -> TYPE = VAR_TYPE_INT;
 		Ginstall($3 -> NAME, variable_type, $5 -> VALUE, NULL, TRUE);
 	}
 
@@ -416,6 +437,7 @@ id_list:	id_list ',' ID	{
 	}
 
 	| ID '[' NUM ']' {
+		$3 -> TYPE = VAR_TYPE_INT;
 		Ginstall($1 -> NAME, variable_type, $3 -> VALUE, NULL, TRUE);
 	}
 
@@ -450,7 +472,7 @@ stmt: ID ASGN expr ';'	{
 			//printf("id type = %d\n", $1 -> TYPE);
 			//printf("expr type = %d\n", $3 -> TYPE);
 			if ($1 -> TYPE != $3 -> TYPE) {
-				printf("Inconsistent types for assignment; exiting.\n");
+				printf("Inconsistent types for assignment at line %d; exiting.\n", line_no + 1);
 				exit(0);
 			}
 			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, $1, $3, NULL, current_local_symbol_table, FALSE);
@@ -462,7 +484,7 @@ stmt: ID ASGN expr ';'	{
 			$1 -> TYPE = find_id_type($1);
 			$1 -> array_or_not = find_array_or_not($1);
 			if (!($1 -> array_or_not)) {
-				printf("Trying to index into a non-array variable %s of type %d; exiting.\n", $1 -> NAME, $1 -> TYPE);
+				printf("Trying to index into a non-array variable %s of type %s; exiting.\n", $1 -> NAME, $1 -> TYPE -> name);
 				exit(0);
 			}
 			// means ID is array alright
@@ -509,7 +531,7 @@ stmt: ID ASGN expr ';'	{
 				printf("Incorrect index type for array; exiting.\n");
 				exit(0);
 			}
-			struct Tnode *new_id_node = TreeCreate(-1, ID, -1, $3 -> NAME, NULL, $5, NULL, NULL, current_local_symbol_table, FALSE);
+			struct Tnode *new_id_node = TreeCreate(NULL, ID, -1, $3 -> NAME, NULL, $5, NULL, NULL, current_local_symbol_table, FALSE);
 			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, current_arg_list, new_id_node, NULL, NULL, current_local_symbol_table, FALSE);
 		}
 
@@ -567,7 +589,7 @@ expr: expr PLUS expr	{
 
 	 | '(' expr ')'		{$$ = TreeCreate($2 -> TYPE, PARENS, -1, NULL, NULL, $2, NULL, NULL, current_local_symbol_table, FALSE);}
 
-	 | NUM			{$$ = $1;}
+	 | NUM			{$1 -> TYPE = VAR_TYPE_INT; $$ = $1;}
 
 	 | ID {
 		$1 -> Lentry = current_local_symbol_table;

@@ -3,10 +3,6 @@
 #define FALSE 0
 #define TRUE 1
 
-#define VAR_TYPE_BOOL 12
-#define VAR_TYPE_INT 2
-#define VAR_TYPE_VOID 4
-
 #define NODETYPE_SLIST 5
 #define NODETYPE_FUNCTION_CALL 6
 #define NODETYPE_FUNCTION_ARG_LIST 7
@@ -20,7 +16,7 @@
 
 struct Tnode {
 
-  int TYPE; // Integer, Boolean or Void (for statements)
+  struct Typetable *TYPE; // Integer, Boolean or Void (for statements)
   /* Points to the type expression tree for user defined types */
   int NODETYPE;
   /* this field should carry following information:
@@ -40,7 +36,7 @@ struct Tnode {
 
 struct ArgStruct {
     char *NAME; // name of the argument
-    int TYPE; // type of the argument
+    struct Typetable *TYPE; // type of the argument
     int *BINDING; // memory location where the argument is stored
     int ARG_SIM_BINDING;
     struct ArgStruct *NEXT;
@@ -51,7 +47,7 @@ struct ArgStruct {
 
 struct Gsymbol {
   char *NAME; // Name of the Identifier
-  int TYPE; // TYPE can be INTEGER or BOOLEAN
+  struct Typetable *TYPE; // TYPE can be INTEGER or BOOLEAN
   /***The TYPE field must be a TypeStruct if user defined types are allowed***/
   int SIZE; // Size field for arrays
   int *BINDING; // Address of the Identifier in Memory
@@ -65,12 +61,12 @@ struct Gsymbol {
 
 struct Gsymbol *Glookup(char *NAME); // Look up for a global identifier
 
-void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST, int array_or_not); // Installation
+void Ginstall(char *NAME, struct Typetable *TYPE, int SIZE, struct ArgStruct *ARGLIST, int array_or_not); // Installation
 
 struct Lsymbol {
 /* Here only name, type, binding and pointer to next entry needed */
   char *NAME;
-  int TYPE;
+  struct Typetable *TYPE;
   int *BINDING;
   int LOCAL_SIM_BINDING;
   struct Lsymbol *NEXT;
@@ -78,9 +74,9 @@ struct Lsymbol {
 
 struct Lsymbol *Llookup(struct Lsymbol *local_symbol_table, char *NAME);
 
-void Linstall(struct Lsymbol *current_local_symbol_table, char *NAME, int TYPE);
+void Linstall(struct Lsymbol *current_local_symbol_table, char *NAME, struct Typetable *TYPE);
 
-struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3, struct Lsymbol *Lentry, int array_or_not);
+struct Tnode *TreeCreate(struct Typetable *TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3, struct Lsymbol *Lentry, int array_or_not);
 
 /*Make a leaf Tnode and set the value of val field*/
 struct Tnode* makeLeafNode(int n);
@@ -88,7 +84,7 @@ struct Tnode* makeLeafNode(int n);
 /*Make a Tnode with opertor, left and right branches set*/
 struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, struct Lsymbol *Lentry, struct ArgStruct *current_arg_list);
 
-struct ArgStruct *ArgInstall(struct ArgStruct *current_arg_list, int variable_type, char *NAME, int PASS_TYPE);
+struct ArgStruct *ArgInstall(struct ArgStruct *current_arg_list, struct Typetable *variable_type, char *NAME, int PASS_TYPE);
 
 /*To evaluate an expression tree*/
 int evaluate(struct Tnode *t);

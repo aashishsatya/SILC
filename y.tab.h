@@ -116,13 +116,14 @@ extern int yydebug;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 19 "expl.y" /* yacc.c:1909  */
+#line 18 "expl.y" /* yacc.c:1909  */
 
 	int int_val;
 	struct  Tnode *tnode_ptr;
 	struct Fieldlist *fields_ptr;
+	struct Typetable *type_entry;
 
-#line 126 "y.tab.h" /* yacc.c:1909  */
+#line 127 "y.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

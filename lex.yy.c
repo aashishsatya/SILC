@@ -816,7 +816,7 @@ YY_RULE_SETUP
 {
 	//printf("ID'ed NUM, working...\n");
 	//printf("Value of NUM = %d\n", atoi(yytext));
-	yylval.tnode_ptr = TreeCreate(VAR_TYPE_INT, NUM, atoi(yytext), NULL, NULL, NULL, NULL, NULL, NULL, FALSE);
+	yylval.tnode_ptr = TreeCreate(NULL, NUM, atoi(yytext), NULL, NULL, NULL, NULL, NULL, NULL, FALSE);
 	//printf("Created a node for NUM...\n");
 	return NUM;
 }
@@ -918,7 +918,7 @@ YY_RULE_SETUP
 	// you don't even know if the ID that is being referenced is an array and
 	// the programmer is asking for a particular index
 	// that has to be taken care of by the expl.y file
-	yylval.tnode_ptr = TreeCreate(-1, ID, -1, variable_name, NULL, NULL, NULL, NULL, NULL, FALSE);	// it's because we're initializing the last parameter
+	yylval.tnode_ptr = TreeCreate(NULL, ID, -1, variable_name, NULL, NULL, NULL, NULL, NULL, FALSE);	// it's because we're initializing the last parameter
 	// here as NULL that we have to include the statement $x -> Lentry = current_local_symbol_table everywhere
 
 	return ID;

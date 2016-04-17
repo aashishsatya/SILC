@@ -1,6 +1,9 @@
 #include "y.tab.h"
 #include "expl.h"
 
+#include "typetables.c"
+
+
 //int *var[26];
 
 FILE *fp = NULL;  // this file pointer will be used for writing the intermediate code to a file
@@ -13,6 +16,8 @@ FILE *fp = NULL;  // this file pointer will be used for writing the intermediate
 }*/
 
 struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, struct Lsymbol *Lentry, struct ArgStruct *current_arg_list) {
+    struct Typetable *VAR_TYPE_INT = Tlookup("integer");
+    struct Typetable *VAR_TYPE_BOOL = Tlookup("boolean");
     struct Tnode *temp;
     // no matter what the type of the operator pointers l and r must have -> TYPE as INT
     switch(OPERATOR) {
@@ -46,7 +51,7 @@ struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, s
     return temp;
 }
 
-struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3, struct Lsymbol *Lentry, int array_or_not) {
+struct Tnode *TreeCreate(struct Typetable *TYPE, int NODETYPE, int VALUE, char *NAME, struct ArgStruct *ArgList, struct Tnode *Ptr1, struct Tnode *Ptr2, struct Tnode *Ptr3, struct Lsymbol *Lentry, int array_or_not) {
 
   struct Tnode *temp;
   temp = (struct Tnode*) malloc(sizeof(struct Tnode));
@@ -73,7 +78,7 @@ struct Tnode *TreeCreate(int TYPE, int NODETYPE, int VALUE, char *NAME, struct A
   return temp;
 }
 
-int evaluate(struct Tnode *t) {
+/*int evaluate(struct Tnode *t) {
     printf("Starting evaluate...\n");
     struct Tnode *id_to_assign = NULL;  // in case we need to get the name of the variable to work on
     struct Gsymbol *id_entry; // to store the pointer to the entry in the symbol table
@@ -243,7 +248,7 @@ int evaluate(struct Tnode *t) {
         break;
     }
     return -1;
-}
+}*/
 
 struct Gsymbol *global_symbol_table_start = NULL;
 struct Gsymbol *global_symbol_table_end = NULL;  // for easier appending
@@ -264,7 +269,7 @@ struct Gsymbol *Glookup(char *NAME) // Look up for a global identifier
 
 int sim_binding = 1024;  // this variable will denote the next FREE memory location
 
-void Ginstall(char *NAME, int TYPE, int SIZE, struct ArgStruct *ARGLIST, int array_or_not) // Installation
+void Ginstall(char *NAME, struct Typetable *TYPE, int SIZE, struct ArgStruct *ARGLIST, int array_or_not) // Installation
 {
 
   // check if the variable name has already been used
@@ -353,8 +358,8 @@ int find_array_or_not(struct Tnode *ptr) {
   }
 }
 
-int find_id_type(struct Tnode *ptr) {
-  int id_type;
+struct Typetable *find_id_type(struct Tnode *ptr) {
+  struct Typetable *id_type;
   // check the local symbol table
   struct Lsymbol *ltemp = Llookup(ptr -> Lentry, ptr -> NAME);
   if (ltemp != NULL) {
@@ -372,7 +377,7 @@ int find_id_type(struct Tnode *ptr) {
   if (temp != NULL) {
     return temp -> TYPE;
   }
-  return -1;  // not a valid ID type
+  return NULL;  // not a valid ID type
 }
 
 // install function for local entries
@@ -381,7 +386,7 @@ struct Lsymbol *current_local_symbol_table = NULL; // this variable will be init
 int local_symbol_table_counter = 1; // BP - this value will be used to access the variable in the intermediate code
 // the grammar rule corresponding to function declaration
 
-void Linstall(struct Lsymbol *local_symbol_table, char *NAME, int TYPE) {
+void Linstall(struct Lsymbol *local_symbol_table, char *NAME, struct Typetable *TYPE) {
 
   struct Lsymbol *temp = local_symbol_table;
 
@@ -441,5 +446,7 @@ int current_arg_binding = 3;
 int no_declared_functions = 0;
 int no_defined_functions = 0;
 int no_return_statements = 0;
-int function_return_statement_type; // stores the actual type of the return statement (i.e. type of expr in 'return expr')
+struct Typetable *function_return_statement_type; // stores the actual type of the return statement (i.e. type of expr in 'return expr')
 int temp; // to be used as and when required
+
+char *currently_defined_type = NULL;  // this is used to deal with self-referential data types

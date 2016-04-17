@@ -542,7 +542,7 @@ int code_gen(struct Tnode *ptr) {
   return 0;
 }
 
-struct ArgStruct *ArgInstall(struct ArgStruct *current_arg_list, int variable_type, char *NAME, int PASS_TYPE) {
+struct ArgStruct *ArgInstall(struct ArgStruct *current_arg_list, struct Typetable *variable_type, char *NAME, int PASS_TYPE) {
 	// append ID to the beginning of the argument list
 
 	struct ArgStruct *new_arg_list = (struct ArgStruct *) malloc(sizeof(struct ArgStruct));

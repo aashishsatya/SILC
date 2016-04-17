@@ -5,22 +5,31 @@ struct Typetable *temp_ttable;
 struct Fieldlist *current_flist;
 struct Fieldlist *temp_flist;
 
+struct Typetable *VAR_TYPE_INT = NULL;
+struct Typetable *VAR_TYPE_BOOL = NULL;
+struct Typetable *VAR_TYPE_VOID = NULL;
+
 void TypeTableCreate() {
-  char *decln_name = (char *) malloc (sizeof(30));
+  //char *decln_name = (char *) malloc (sizeof(30));
 
   // add "boolean" as a type
 
   ttable = (struct Typetable *) malloc(sizeof(struct Typetable));
+  ttable -> name = (char *) malloc(sizeof(char) * 30);
   strcpy(ttable -> name, "boolean");
   ttable -> fields = NULL;
   ttable -> next = NULL;
+  VAR_TYPE_BOOL = ttable;
 
   // add integer as type
 
   struct Typetable *new_ttable = (struct Typetable *) malloc(sizeof(struct Typetable));
+  new_ttable -> name = (char *) malloc(sizeof(char) * 30);
   strcpy(new_ttable -> name, "integer");
   new_ttable -> fields = NULL;
   new_ttable -> next = ttable;
+  ttable = new_ttable;
+  VAR_TYPE_INT = ttable;
 }
 
 // search through the type table and return pointer to type table entry of type 'name'.
