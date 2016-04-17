@@ -407,18 +407,7 @@ id_list:	id_list ',' ID	{
 
 	| id_list ',' ID '[' NUM ']' {
 		printf("Installing array %s\n", $3 -> NAME);
-		switch (variable_type) {
-			case VAR_TYPE_INT:
-				// so the variable is of type integer
-				// but it's an array
-				// so install it as such
-				Ginstall($3 -> NAME, VAR_TYPE_INT_ARR, $5 -> VALUE, NULL, TRUE);
-				break;
-			case VAR_TYPE_BOOL:
-				// ditto
-				Ginstall($3 -> NAME, VAR_TYPE_BOOL_ARR, $5 -> VALUE, NULL, TRUE);
-				break;
-		}
+		Ginstall($3 -> NAME, variable_type, $5 -> VALUE, NULL, TRUE);
 	}
 
 	|	ID {
@@ -427,21 +416,7 @@ id_list:	id_list ',' ID	{
 	}
 
 	| ID '[' NUM ']' {
-		switch (variable_type) {
-			case VAR_TYPE_INT:
-				// so the variable is of type integer
-				// but it's an array
-				// so install it as such
-				//variable_type = VAR_TYPE_INT_ARR;
-				Ginstall($1 -> NAME, VAR_TYPE_INT_ARR, $3 -> VALUE, NULL, TRUE);
-				break;
-			case VAR_TYPE_BOOL:
-				// ditto
-				//variable_type = VAR_TYPE_BOOL_ARR;
-				Ginstall($1 -> NAME, VAR_TYPE_BOOL_ARR, $3 -> VALUE, NULL, TRUE);
-				break;
-		}
-		//printf("%s installed as array\n", $1 -> NAME);
+		Ginstall($1 -> NAME, variable_type, $3 -> VALUE, NULL, TRUE);
 	}
 
 	| id_list ',' ID '(' ArgList ')' {
@@ -485,13 +460,14 @@ stmt: ID ASGN expr ';'	{
 			$1 -> ArgList = current_arg_list;
 			$1 -> Lentry = current_local_symbol_table;
 			$1 -> TYPE = find_id_type($1);
-			if ($1 -> TYPE != VAR_TYPE_INT_ARR && $1 -> TYPE != VAR_TYPE_BOOL_ARR) {
+			$1 -> array_or_not = find_array_or_not($1);
+			if (!($1 -> array_or_not)) {
 				printf("Trying to index into a non-array variable %s of type %d; exiting.\n", $1 -> NAME, $1 -> TYPE);
 				exit(0);
 			}
 			// means ID is array alright
 			// now we just have to check if expr is compatible with ID
-			if (($1 -> TYPE == VAR_TYPE_INT_ARR && $6 -> TYPE == VAR_TYPE_BOOL) || ($1 -> TYPE == VAR_TYPE_BOOL_ARR && $6 -> TYPE == VAR_TYPE_INT)) {
+			if ($1 -> TYPE != $6 -> TYPE) {
 				printf("Inconsistent types for assignment; exiting.\n");
 				exit(0);
 			}
@@ -516,6 +492,7 @@ stmt: ID ASGN expr ';'	{
 			$3 -> ArgList = current_arg_list;
 			$3 -> Lentry = current_local_symbol_table;
 			$3 -> TYPE = find_id_type($3);
+			$3 -> array_or_not = find_array_or_not($3);
 			//printf("id type read = %d\n", $3 -> TYPE);
 			// this is READ for arrays
 			// reason why you can't have READ(expr) (similar to WRITE below)
@@ -524,7 +501,7 @@ stmt: ID ASGN expr ';'	{
 			// wrong, but write(a + b + c) works
 
 			// but before all that check the type of variables
-			if ($3 -> TYPE != VAR_TYPE_INT_ARR) {
+			if ($3 -> TYPE != VAR_TYPE_INT || !$3 -> array_or_not) {
 				printf("Incorrect array type for READ statement; exiting.\n");
 				exit(0);
 			}
@@ -608,21 +585,16 @@ expr: expr PLUS expr	{
 		 $1 -> ArgList = current_arg_list;
 		 $1 -> Lentry = current_local_symbol_table;
 		 $1 -> TYPE = find_id_type($1);
+		 $1 -> array_or_not = find_array_or_not($1);
 		 if ($3 -> TYPE != VAR_TYPE_INT) {
 			 printf("Line %d: incorrect type for array index; exiting.\n", line_no + 1);
 			 exit(0);
 		 }
-		 switch($1 -> TYPE) {
-			 case VAR_TYPE_INT_ARR:
-			 	$$ = TreeCreate(VAR_TYPE_INT, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
-				break;
-			 case VAR_TYPE_BOOL_ARR:
-			 	$$ = TreeCreate(VAR_TYPE_BOOL, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
-				break;
-			 default:
-			  printf("Trying to index into a non-array variable %s; exiting.\n", $1 -> NAME);
-			  exit(0);
+		 if (!$1 -> array_or_not) {
+			 printf("Trying to index into a non-array variable %s; exiting.\n", $1 -> NAME);
+			 exit(0);
 		 }
+		 $$ = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 	 }
 
 	 | ID '(' ArgListFunctionCall ')' {

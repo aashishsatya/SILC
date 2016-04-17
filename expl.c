@@ -333,6 +333,26 @@ struct ArgStruct *ArgLookup(struct ArgStruct *current_args, char *NAME) {
   return current_args;
 }
 
+int find_array_or_not(struct Tnode *ptr) {
+  int id_type;
+  // check the local symbol table
+  struct Lsymbol *ltemp = Llookup(ptr -> Lentry, ptr -> NAME);
+  if (ltemp != NULL) {
+    // no array types are allowed for local variables
+    return FALSE;
+  }
+  // check ArgList
+  struct ArgStruct *fn_arg_list = ArgLookup(ptr -> ArgList, ptr -> NAME);
+  if (fn_arg_list != NULL) {
+    // no array types are allowed for arguments
+    return FALSE;
+  }
+  struct Gsymbol *temp = Glookup(ptr -> NAME);
+  if (temp != NULL) {
+    return temp -> array_or_not;
+  }
+}
+
 int find_id_type(struct Tnode *ptr) {
   int id_type;
   // check the local symbol table
@@ -350,29 +370,7 @@ int find_id_type(struct Tnode *ptr) {
   //printf("Trying to find type of %s\n", ptr -> NAME);
   struct Gsymbol *temp = Glookup(ptr -> NAME);
   if (temp != NULL) {
-    //printf("Inside case for global symbol table\n");
-    //printf("Still trying to find type of %s\n", ptr -> NAME);
-    switch (temp -> TYPE) {
-      case VAR_TYPE_INT_ARR:
-      case VAR_TYPE_INT:
-        // check if the given ID is for an array type variable
-        if (temp -> SIZE > 1) {
-          id_type = VAR_TYPE_INT_ARR;
-        }
-        else
-          id_type = VAR_TYPE_INT;
-        break;
-      case VAR_TYPE_BOOL_ARR:
-      case VAR_TYPE_BOOL:
-        // check if the given ID is for an array type variable
-        if (temp -> SIZE > 1) {
-          id_type = VAR_TYPE_BOOL_ARR;
-        }
-        else
-          id_type = VAR_TYPE_BOOL;
-        break;
-    }
-    return id_type;
+    return temp -> TYPE;
   }
   return -1;  // not a valid ID type
 }

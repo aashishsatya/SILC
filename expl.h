@@ -4,9 +4,7 @@
 #define TRUE 1
 
 #define VAR_TYPE_BOOL 12
-#define VAR_TYPE_BOOL_ARR 13
 #define VAR_TYPE_INT 2
-#define VAR_TYPE_INT_ARR 3
 #define VAR_TYPE_VOID 4
 
 #define NODETYPE_SLIST 5
