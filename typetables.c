@@ -1,8 +1,10 @@
 #include "typetables.h"
+#include <string.h>
 
 struct Typetable *ttable; // this is the current type table that is
 struct Typetable *temp_ttable;
 struct Fieldlist *current_flist;
+struct Fieldlist *temp_current_flist;
 struct Fieldlist *temp_flist;
 
 struct Typetable *VAR_TYPE_INT = NULL;
@@ -48,6 +50,7 @@ struct Typetable *Tlookup (char *name) {
 
 struct Typetable *Tinstall (char *name, struct Fieldlist *fields) {
    temp_ttable = (struct Typetable *) malloc(sizeof(struct Typetable));
+   temp_ttable -> name = (char *) malloc(sizeof(char) * 30);
    strcpy(temp_ttable -> name, name);
    temp_ttable -> fields = fields;
    temp_ttable -> next = ttable;
@@ -67,18 +70,17 @@ struct Fieldlist *FLookup(struct Typetable *type, char *name) {
 
 struct Fieldlist *Finstall(char *name) {
 
-  // this will install a field of type 'type' with name 'name' :-P to the current_flist
+  // this will install a field of type 'type' with name 'name' :-P to the temp_current_flist
   struct Fieldlist *new_flist = (struct Fieldlist *) malloc(sizeof(struct Fieldlist));
+  new_flist -> name = (char *) malloc(sizeof(char) * 30);
   strcpy(new_flist -> name, name);
 
-  if (current_flist == NULL) {
+  if (temp_current_flist == NULL) {
     new_flist -> next = NULL;
-    new_flist -> fieldIndex = 0;
   }
   else {
-    new_flist -> next = current_flist;
-    new_flist -> fieldIndex = current_flist -> fieldIndex + 1;
+    new_flist -> next = temp_current_flist;
   }
-  current_flist = new_flist;
+  temp_current_flist = new_flist;
   return new_flist;
 }

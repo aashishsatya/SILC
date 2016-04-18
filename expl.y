@@ -22,7 +22,7 @@
 	struct Typetable *type_entry;
 }
 
-%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL BOOL INT ENDOFFILE BEGINNING END MAIN RETURN LE GE TYPEDEF
+%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL ENDOFFILE BEGINNING END MAIN RETURN LE GE TYPEDEF
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -50,8 +50,6 @@
 %type <tnode_ptr> ENDDECL;
 %type <tnode_ptr> BEGINNING;
 %type <tnode_ptr> END;
-%type <tnode_ptr> INT;
-%type <tnode_ptr> BOOL;
 %type <tnode_ptr> declarations;
 %type <tnode_ptr> ENDOFFILE;
 %type <tnode_ptr> funcBody;
@@ -61,6 +59,7 @@
 %type <tnode_ptr> LE;
 %type <tnode_ptr> GE;
 %type <type_entry> type;
+%type <tnode_ptr> dataTypeName;
 
 %left PLUS MINUS
 %left MUL DIV
@@ -121,14 +120,29 @@ dataTypeDecln: TYPEDEF dataTypeName '{' fieldDeclarations '}' {
 
 		// install ID to type table
 		Tinstall($2 -> NAME, current_flist);
+		struct Typetable *current_ttentry = Tlookup($2 -> NAME);
+
+		int fieldIndex = 0;
 
 		printf("ID'ed data type %s\n", $2 -> NAME);
 		temp_flist = current_flist;
-		while (temp_flist) {
-			printf("Stored variable %s of type %s\n", temp_flist -> name, temp_flist -> type -> name);
+		if (temp_flist == NULL) {
+			printf("current_flist is NULL.\n");
+		}
+		while (temp_flist != NULL) {
+			// fix self-referential data types
+			if (temp_flist -> type == NULL) {
+				printf("Type entry corresponding to variable %s was NULL, editing it now...\n", temp_flist -> name);
+				temp_flist -> type = current_ttentry;
+			}
+			temp_flist -> fieldIndex = fieldIndex;
+			fieldIndex++;
+			printf("Stored variable %s of type %s with fieldIndex %d\n", temp_flist -> name, temp_flist -> type -> name, temp_flist -> fieldIndex);
+			temp_flist = temp_flist -> next;
 		}
 		current_flist = NULL;	// because the next time code reaches here it will be a different type definition
-
+		free(currently_defined_type);
+		currently_defined_type = NULL;
 	}
 	;
 
@@ -154,30 +168,52 @@ fieldDeclarations: fieldDeclarations field_decln  {
 field_decln: ID user_type_list ';' {
 		// check the ID corresponds to a data type in the type table
 		struct Typetable *tt_entry = Tlookup($1 -> NAME);
+		printf("Looked up type %s\n", $1 -> NAME);
+		if (tt_entry == NULL) {
+			printf("Received NULL\n");
+		}
 		if (tt_entry == NULL && strcmp($1 -> NAME, currently_defined_type) != 0) {
 			printf("Line %d: undefined data type %s, exiting.\n", line_no + 1, $1 -> NAME);
 		}
-		else if (strcmp($1 -> NAME, currently_defined_type) == 0) {
-			// we're dealing with a self-referential data type
-			// DO SOMETHING HERE
-		}
-		// current_flist will not have the field 'type' initialized because this information
+		// temp_current_flist will not have the field 'type' initialized because this information
 		// is available only now
 		// so initialize the field
-		temp_flist = current_flist;
+		temp_flist = temp_current_flist;
 		while (temp_flist != NULL) {
-			temp_flist -> type = tt_entry;
+			temp_flist -> type = tt_entry;	// if tt_entry is NULL it'll correspond to the fact that we're
+			// dealing with a self-referential data type
 			temp_flist = temp_flist -> next;
 		}
+
+		// add this list to the end of current_flist
+		temp_flist = temp_current_flist;
+		while (temp_flist != NULL && temp_flist -> next != NULL) {
+			temp_flist = temp_flist -> next;
+		}
+		// the if (temp_current_flist == NULL) doesn't have to be checked because there will always be
+		// at least one entry
+		temp_flist -> next = current_flist;
+		current_flist = temp_current_flist;
+
+		temp_current_flist = NULL;
+
+		/*temp_flist = current_flist;
+		while (temp_flist != NULL) {
+			if (tt_entry != NULL)
+				printf("Assigning type %s to variable %s...\n", tt_entry -> name, temp_flist -> name);
+			temp_flist -> type = tt_entry;	// if tt_entry is NULL it'll correspond to the fact that we're
+			// dealing with a self-referential data type
+			temp_flist = temp_flist -> next;
+		}*/
 	}
 	;
 
 user_type_list: user_type_list ',' ID {
-		current_flist = Finstall($3 -> NAME);
+		temp_current_flist = Finstall($3 -> NAME);
 	}
 
 	| ID {
-		current_flist = Finstall($1 -> NAME);
+		temp_current_flist = Finstall($1 -> NAME);
 	}
 	;
 
@@ -414,8 +450,10 @@ dec_list: dec dec_list {}
 
 // a declaration is a type followed by a name followed by [], which are optional
 
-type: INT {variable_type = VAR_TYPE_INT; $$ = VAR_TYPE_INT;}
-	| BOOL {variable_type = VAR_TYPE_BOOL; $$ = VAR_TYPE_BOOL;}
+type:	ID {
+		variable_type = Tlookup($1 -> NAME);
+		$$ = variable_type;
+	}
 	;
 
 dec: type id_list ';' {};

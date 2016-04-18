@@ -66,16 +66,14 @@ extern int yydebug;
     MINUS = 276,
     DECL = 277,
     ENDDECL = 278,
-    BOOL = 279,
-    INT = 280,
-    ENDOFFILE = 281,
-    BEGINNING = 282,
-    END = 283,
-    MAIN = 284,
-    RETURN = 285,
-    LE = 286,
-    GE = 287,
-    TYPEDEF = 288
+    ENDOFFILE = 279,
+    BEGINNING = 280,
+    END = 281,
+    MAIN = 282,
+    RETURN = 283,
+    LE = 284,
+    GE = 285,
+    TYPEDEF = 286
   };
 #endif
 /* Tokens.  */
@@ -100,16 +98,14 @@ extern int yydebug;
 #define MINUS 276
 #define DECL 277
 #define ENDDECL 278
-#define BOOL 279
-#define INT 280
-#define ENDOFFILE 281
-#define BEGINNING 282
-#define END 283
-#define MAIN 284
-#define RETURN 285
-#define LE 286
-#define GE 287
-#define TYPEDEF 288
+#define ENDOFFILE 279
+#define BEGINNING 280
+#define END 281
+#define MAIN 282
+#define RETURN 283
+#define LE 284
+#define GE 285
+#define TYPEDEF 286
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -123,7 +119,7 @@ union YYSTYPE
 	struct Fieldlist *fields_ptr;
 	struct Typetable *type_entry;
 
-#line 127 "y.tab.h" /* yacc.c:1909  */
+#line 123 "y.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

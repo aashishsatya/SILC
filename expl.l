@@ -34,8 +34,6 @@ NL 	[\n]
 "then" {return THEN;}
 "decl" {return DECL;}
 "enddecl" {return ENDDECL;}
-"integer" {return INT;}
-"boolean" {return BOOL;}
 "begin" {return BEGINNING;}
 "end" {return END;}
 "main" {return MAIN;}
