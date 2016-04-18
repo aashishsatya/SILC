@@ -267,7 +267,7 @@ struct Gsymbol *Glookup(char *NAME) // Look up for a global identifier
     return temp;
 }
 
-int sim_binding = 1024;  // this variable will denote the next FREE memory location
+int sim_binding = 0;  // this variable will denote the next FREE memory location
 
 void Ginstall(char *NAME, struct Typetable *TYPE, int SIZE, struct ArgStruct *ARGLIST, int array_or_not) // Installation
 {
@@ -300,7 +300,7 @@ void Ginstall(char *NAME, struct Typetable *TYPE, int SIZE, struct ArgStruct *AR
   int *int_space = (int *) malloc(sizeof(int) * SIZE);
   new_entry -> BINDING = int_space;
   new_entry -> SIM_BINDING = sim_binding;
-  //printf("new_entry -> SIM_BINDING: %d\n", new_entry -> SIM_BINDING);
+  printf("Alloted binding of %d to variable %s\n", new_entry -> SIM_BINDING, new_entry -> NAME);
   sim_binding += SIZE;
 
   // update the last entry of the symbol table to point to this new entry

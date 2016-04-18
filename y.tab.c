@@ -1484,7 +1484,7 @@ yyreduce:
 		while (temp_flist != NULL) {
 			// fix self-referential data types
 			if (temp_flist -> type == NULL) {
-				printf("Type entry corresponding to variable %s was NULL, editing it now...\n", temp_flist -> name);
+				//printf("Type entry corresponding to variable %s was NULL, editing it now...\n", temp_flist -> name);
 				temp_flist -> type = current_ttentry;
 			}
 			temp_flist -> fieldIndex = fieldIndex;
@@ -1534,10 +1534,10 @@ yyreduce:
     {
 		// check the ID corresponds to a data type in the type table
 		struct Typetable *tt_entry = Tlookup((yyvsp[-2].tnode_ptr) -> NAME);
-		printf("Looked up type %s\n", (yyvsp[-2].tnode_ptr) -> NAME);
+		/*printf("Looked up type %s\n", $1 -> NAME);
 		if (tt_entry == NULL) {
 			printf("Received NULL\n");
-		}
+		}*/
 		if (tt_entry == NULL && strcmp((yyvsp[-2].tnode_ptr) -> NAME, currently_defined_type) != 0) {
 			printf("Line %d: undefined data type %s, exiting.\n", line_no + 1, (yyvsp[-2].tnode_ptr) -> NAME);
 		}
@@ -1842,7 +1842,7 @@ yyreduce:
     {
 		// install this in the LOCAL symbol table for a function
 		Linstall(current_local_symbol_table, (yyvsp[0].tnode_ptr) -> NAME, variable_type);
-		//printf("Installed variable %s\n", $3 -> NAME);
+		printf("Installed local variable %s as type %s\n", (yyvsp[0].tnode_ptr) -> NAME, variable_type -> name);
 	}
 #line 1848 "y.tab.c" /* yacc.c:1646  */
     break;
@@ -1851,7 +1851,7 @@ yyreduce:
 #line 426 "expl.y" /* yacc.c:1646  */
     {
 		Linstall(current_local_symbol_table, (yyvsp[0].tnode_ptr) -> NAME, variable_type);
-		//printf("Installed variable %s\n", $1 -> NAME);
+		printf("Installed local variable %s as type %s\n", (yyvsp[0].tnode_ptr) -> NAME, variable_type -> name);
 	}
 #line 1857 "y.tab.c" /* yacc.c:1646  */
     break;
@@ -1914,7 +1914,7 @@ yyreduce:
   case 38:
 #line 461 "expl.y" /* yacc.c:1646  */
     {
-		//printf("%s installed as %d\n", $3 -> NAME, variable_type);
+		printf("Global variable %s installed as %s\n", (yyvsp[0].tnode_ptr) -> NAME, variable_type -> name);
 		Ginstall((yyvsp[0].tnode_ptr) -> NAME, variable_type, 1, NULL, FALSE);
 	}
 #line 1921 "y.tab.c" /* yacc.c:1646  */
@@ -1934,7 +1934,7 @@ yyreduce:
 #line 472 "expl.y" /* yacc.c:1646  */
     {
 		Ginstall((yyvsp[0].tnode_ptr) -> NAME, variable_type, 1, NULL, FALSE);
-		//printf("%s installed as standalone variable\n", $1 -> NAME);
+		printf("Global variable %s installed as %s\n", (yyvsp[0].tnode_ptr) -> NAME, variable_type -> name);
 	}
 #line 1940 "y.tab.c" /* yacc.c:1646  */
     break;

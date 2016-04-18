@@ -132,7 +132,7 @@ dataTypeDecln: TYPEDEF dataTypeName '{' fieldDeclarations '}' {
 		while (temp_flist != NULL) {
 			// fix self-referential data types
 			if (temp_flist -> type == NULL) {
-				printf("Type entry corresponding to variable %s was NULL, editing it now...\n", temp_flist -> name);
+				//printf("Type entry corresponding to variable %s was NULL, editing it now...\n", temp_flist -> name);
 				temp_flist -> type = current_ttentry;
 			}
 			temp_flist -> fieldIndex = fieldIndex;
@@ -168,10 +168,10 @@ fieldDeclarations: fieldDeclarations field_decln  {
 field_decln: ID user_type_list ';' {
 		// check the ID corresponds to a data type in the type table
 		struct Typetable *tt_entry = Tlookup($1 -> NAME);
-		printf("Looked up type %s\n", $1 -> NAME);
+		/*printf("Looked up type %s\n", $1 -> NAME);
 		if (tt_entry == NULL) {
 			printf("Received NULL\n");
-		}
+		}*/
 		if (tt_entry == NULL && strcmp($1 -> NAME, currently_defined_type) != 0) {
 			printf("Line %d: undefined data type %s, exiting.\n", line_no + 1, $1 -> NAME);
 		}
@@ -420,12 +420,12 @@ local_dec: type local_id_list ';' {};
 local_id_list: local_id_list ',' ID {
 		// install this in the LOCAL symbol table for a function
 		Linstall(current_local_symbol_table, $3 -> NAME, variable_type);
-		//printf("Installed variable %s\n", $3 -> NAME);
+		printf("Installed local variable %s as type %s\n", $3 -> NAME, variable_type -> name);
 	}
 
 	| ID {
 		Linstall(current_local_symbol_table, $1 -> NAME, variable_type);
-		//printf("Installed variable %s\n", $1 -> NAME);
+		printf("Installed local variable %s as type %s\n", $1 -> NAME, variable_type -> name);
 	}
 	;
 
@@ -459,7 +459,7 @@ type:	ID {
 dec: type id_list ';' {};
 
 id_list:	id_list ',' ID	{
-		//printf("%s installed as %d\n", $3 -> NAME, variable_type);
+		printf("Global variable %s installed as %s\n", $3 -> NAME, variable_type -> name);
 		Ginstall($3 -> NAME, variable_type, 1, NULL, FALSE);
 	}
 
@@ -471,7 +471,7 @@ id_list:	id_list ',' ID	{
 
 	|	ID {
 		Ginstall($1 -> NAME, variable_type, 1, NULL, FALSE);
-		//printf("%s installed as standalone variable\n", $1 -> NAME);
+		printf("Global variable %s installed as %s\n", $1 -> NAME, variable_type -> name);
 	}
 
 	| ID '[' NUM ']' {
