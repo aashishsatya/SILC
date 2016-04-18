@@ -267,7 +267,7 @@ struct Gsymbol *Glookup(char *NAME) // Look up for a global identifier
     return temp;
 }
 
-int sim_binding = 0;  // this variable will denote the next FREE memory location
+int sim_binding = 1025;  // this variable will denote the next FREE memory location
 
 void Ginstall(char *NAME, struct Typetable *TYPE, int SIZE, struct ArgStruct *ARGLIST, int array_or_not) // Installation
 {

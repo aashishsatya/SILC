@@ -383,9 +383,38 @@ MainBlock: type MAIN '(' ')' '{' localDeclarations BEGINNING slist END '}' {
 		code_gen(main_defn);
 
 		fprintf(fp, "START\n");
+
+		// code for initialize()
+
+		fprintf(fp, "MOV R1, 0	// to store i\n");
+		fprintf(fp, "MOV R2, 1016\n");
+		fprintf(fp, "MOV R3, 8	// to store i + 8\n");
+		fprintf(fp, "MOV R4, 8	// to store '8'\n");
+		fprintf(fp, "MOV R0, R1	// to store '8'\n");
+		fprintf(fp, "L0:\n");
+		fprintf(fp, "LT R0, R2\n");
+		fprintf(fp, "JZ R0, L1\n");
+		fprintf(fp, "MOV [R1], R3	// heap[i] = i + 8\n");
+
+		/*
+		fprintf(fp, "MOV R5, [R1]\n");
+		fprintf(fp, "OUT R5\n");
+		*/
+
+		fprintf(fp, "ADD R1, R4	// i = i + 8\n");
+		fprintf(fp, "ADD R3, R4\n");
+		fprintf(fp, "MOV R0, R1\n");
+		fprintf(fp, "JMP L0\n");
+		fprintf(fp, "L1:\n");
+		fprintf(fp, "MOV R0, 1016	// there are no free entries after this entry\n");
+		fprintf(fp, "MOV [R0], -1\n");
+		fprintf(fp, "MOV R0, 1024	// this will store the location of the next free entry\n");
+		fprintf(fp, "MOV [R0], 0\n");
+
 		// save space for global variables
 		// it is the programmer's responsibility to suitably allocate stack pointers
 		// SP will be sim_binding - 1
+
 		fprintf(fp, "MOV SP, %d // leave space for global variables\n", sim_binding - 1);
 		// leave space for local variables
 		int temp = allocate_register();

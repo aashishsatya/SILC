@@ -4,7 +4,7 @@
 
 int register_to_use = -1;  // this is the next to be allocated
 int next_register;  // this will be the variable used internally in the switch staements
-int label_counter = -1;  // a concatenation of L and this value will be used for labels
+int label_counter = 0;  // a concatenation of L and this value will be used for labels
 int no_local_vbls_pushed;
 
 int allocate_register() {
