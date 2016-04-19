@@ -533,7 +533,7 @@ id_list:	id_list ',' ID	{
 	;
 
 stmt: userDataTypeAccess ASGN expr ';' {
-			printf("hello world!");
+			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, $1, $3, NULL, current_local_symbol_table, FALSE);
 		}
 
 		/*
@@ -683,7 +683,7 @@ userDataTypeAccess: userDataTypeAccess '.' ID {
 			flist = flist -> next;
 		}
 
-		$$ = TreeCreate(flist -> type, NODETYPE_STRUCT_ELEM_ACCESS, -1, NULL, current_arg_list, $1, $3, NULL, current_local_symbol_table, FALSE);
+		$$ = TreeCreate(flist -> type, NODETYPE_STRUCT_ELEM_ACCESS, -1, $1 -> NAME, current_arg_list, $1, $3, NULL, current_local_symbol_table, FALSE);
 
 	}
 
@@ -723,7 +723,7 @@ userDataTypeAccess: userDataTypeAccess '.' ID {
 
 		// to deal with if structures are involved
 
-		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_STRUCT_ELEM_ACCESS, -1, $1 -> NAME, current_arg_list, $1, NULL, $3, current_local_symbol_table, FALSE);
+		$$ = TreeCreate($1 -> TYPE, NODETYPE_STRUCT_ELEM_ACCESS, -1, $1 -> NAME, current_arg_list, $1, NULL, $3, current_local_symbol_table, FALSE);
 	}
 	;
 
@@ -785,7 +785,7 @@ expr: expr PLUS expr	{
 	 */
 
 	 | userDataTypeAccess {
-		 	printf("hello world!");
+		 	$$ = $1;
 	 }
 
 	 | ID '(' ArgListFunctionCall ')' {

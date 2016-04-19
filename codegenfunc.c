@@ -200,10 +200,7 @@ int code_gen(struct Tnode *ptr) {
 
     case NODETYPE_STRUCT_ELEM_ACCESS:
 
-      // this is the idea
-      // if it's a user defined data type that's being requested, then we give away the address because
-      // the user is trying to allocate memory into the same
-      // if it's an integer or boolean variable that's being requested, we return the value
+      // return the value like in ID
 
       if (ptr -> Ptr2 == NULL) {
         // phew, not a nested structure
@@ -249,7 +246,7 @@ int code_gen(struct Tnode *ptr) {
               fprintf(fp, "MOV R%d, [R%d]\n", next_register, next_register);
 
 
-            fprintf(fp, "MOV R%d, R%d\n", lhs, next_register);
+            fprintf(fp, "MOV R%d, [R%d]\n", lhs, next_register);
             // lhs now contains BP + binding
             deallocate_register();  // free temp
             deallocate_register();  // free next_register
