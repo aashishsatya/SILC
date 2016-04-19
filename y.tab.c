@@ -2010,7 +2010,7 @@ yyreduce:
   case 44:
 #line 535 "expl.y" /* yacc.c:1646  */
     {
-			printf("hello world!");
+			(yyval.tnode_ptr) = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, (yyvsp[-3].tnode_ptr), (yyvsp[-1].tnode_ptr), NULL, current_local_symbol_table, FALSE);
 		}
 #line 2016 "y.tab.c" /* yacc.c:1646  */
     break;
@@ -2153,7 +2153,7 @@ yyreduce:
 
 		// to deal with if structures are involved
 
-		(yyval.tnode_ptr) = TreeCreate(VAR_TYPE_VOID, NODETYPE_STRUCT_ELEM_ACCESS, -1, (yyvsp[-3].tnode_ptr) -> NAME, current_arg_list, (yyvsp[-3].tnode_ptr), NULL, (yyvsp[-1].tnode_ptr), current_local_symbol_table, FALSE);
+		(yyval.tnode_ptr) = TreeCreate((yyvsp[-3].tnode_ptr) -> TYPE, NODETYPE_STRUCT_ELEM_ACCESS, -1, (yyvsp[-3].tnode_ptr) -> NAME, current_arg_list, (yyvsp[-3].tnode_ptr), NULL, (yyvsp[-1].tnode_ptr), current_local_symbol_table, FALSE);
 	}
 #line 2159 "y.tab.c" /* yacc.c:1646  */
     break;
@@ -2221,7 +2221,7 @@ yyreduce:
   case 63:
 #line 787 "expl.y" /* yacc.c:1646  */
     {
-		 	printf("hello world!");
+		 	(yyval.tnode_ptr) = (yyvsp[0].tnode_ptr);
 	 }
 #line 2227 "y.tab.c" /* yacc.c:1646  */
     break;

@@ -54,54 +54,108 @@ int code_gen(struct Tnode *ptr) {
     case PLUS:
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
+      if (ptr -> Ptr1 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
+      }
+      if (ptr -> Ptr2 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", rhs, rhs);
+      }
       fprintf(fp, "ADD R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
     case MINUS:
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
+      if (ptr -> Ptr1 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
+      }
+      if (ptr -> Ptr2 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", rhs, rhs);
+      }
       fprintf(fp, "SUB R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
     case MUL:
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
+      if (ptr -> Ptr1 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
+      }
+      if (ptr -> Ptr2 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", rhs, rhs);
+      }
       fprintf(fp, "MUL R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
     case DIV:
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
+      if (ptr -> Ptr1 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
+      }
+      if (ptr -> Ptr2 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", rhs, rhs);
+      }
       fprintf(fp, "DIV R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
     case EQ:
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
+      if (ptr -> Ptr1 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
+      }
+      if (ptr -> Ptr2 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", rhs, rhs);
+      }
       fprintf(fp, "EQ R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
     case GT:
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
+      if (ptr -> Ptr1 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
+      }
+      if (ptr -> Ptr2 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", rhs, rhs);
+      }
       fprintf(fp, "GT R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
     case LT:
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
+      if (ptr -> Ptr1 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
+      }
+      if (ptr -> Ptr2 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", rhs, rhs);
+      }
       fprintf(fp, "LT R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
     case LE:
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
+      if (ptr -> Ptr1 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
+      }
+      if (ptr -> Ptr2 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", rhs, rhs);
+      }
       fprintf(fp, "LE R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
     case GE:
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
+      if (ptr -> Ptr1 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
+      }
+      if (ptr -> Ptr2 -> NODETYPE != NUM) {
+        fprintf(fp, "MOV R%d, [R%d]\n", rhs, rhs);
+      }
       fprintf(fp, "GE R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
@@ -114,6 +168,16 @@ int code_gen(struct Tnode *ptr) {
     case ASGN:
 
       // TODO: this has to be modified for structures
+
+      rhs = code_gen(ptr -> Ptr2);
+      lhs = code_gen(ptr -> Ptr1);
+      if (ptr -> Ptr2 -> NODETYPE == NODETYPE_STRUCT_ELEM_ACCESS) {
+        fprintf(fp, "MOV R%d, [R%d]\n", rhs, rhs);
+      }
+      fprintf(fp, "MOV [R%d], R%d\n", lhs, rhs);
+      break;
+
+      /*
 
       //printf("In ASGN...\n");
       // simple question of a move
@@ -182,6 +246,7 @@ int code_gen(struct Tnode *ptr) {
         }
       }
       deallocate_register();  // deallocate rhs
+      */
       break;
 
     case NODETYPE_ALLOC:
@@ -323,10 +388,11 @@ int code_gen(struct Tnode *ptr) {
       // evaluate the argument within WRITE
       //printf("In WRITE...\n");
       lhs = code_gen(ptr -> Ptr1);
-      temp = allocate_register();
-      fprintf(fp, "MOV R%d, [R%d]\n", temp, lhs);
-      fprintf(fp, "OUT R%d\n", temp);
-      deallocate_register();  // free temp
+      if (ptr -> Ptr1 -> NODETYPE == NODETYPE_STRUCT_ELEM_ACCESS) {
+        printf("Write in struct...\n");
+        fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
+      }
+      fprintf(fp, "OUT R%d\n", lhs);
       deallocate_register();  // give back lhs register
       break;
 
@@ -434,7 +500,7 @@ int code_gen(struct Tnode *ptr) {
         // so if we set R_next_register to be [BP + 2] (in case of call by reference) then both cases should work
         if (function_arg_list != NULL && function_arg_list -> PASS_TYPE == PASS_BY_REFERENCE)
           fprintf(fp, "MOV R%d, [R%d]\n", next_register, next_register);
-        fprintf(fp, "MOV R%d, [R%d]\n", lhs, next_register);
+        fprintf(fp, "MOV R%d, R%d\n", lhs, next_register);
         // next_register now contains BP + binding
         deallocate_register();  // free temp
         deallocate_register();  // free next_register
@@ -444,7 +510,7 @@ int code_gen(struct Tnode *ptr) {
         if (ptr -> Ptr1 == NULL) {
           // ptr is not the ID for an array
           // so just access the memory location directly stored in its binding
-          fprintf(fp, "MOV R%d, [%d]\n", lhs, symbol_table_ptr -> SIM_BINDING);
+          fprintf(fp, "MOV R%d, %d\n", lhs, symbol_table_ptr -> SIM_BINDING);
         }
         else {
           // whoopsie, ID is an array
@@ -457,7 +523,7 @@ int code_gen(struct Tnode *ptr) {
           deallocate_register();  // release temp
           // now we have the proper address to read into stored in rhs
           // move the value in the memory location in rhs
-          fprintf(fp, "MOV R%d, [R%d]\n", lhs, rhs);
+          fprintf(fp, "MOV R%d, R%d\n", lhs, rhs);
           deallocate_register();  // free rhs
         }
       }
