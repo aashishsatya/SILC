@@ -22,7 +22,7 @@
 	struct Typetable *type_entry;
 }
 
-%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL ENDOFFILE BEGINNING END MAIN RETURN LE GE TYPEDEF
+%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL ENDOFFILE BEGINNING END MAIN RETURN LE GE TYPEDEF ALLOC
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -60,6 +60,7 @@
 %type <tnode_ptr> GE;
 %type <type_entry> type;
 %type <tnode_ptr> dataTypeName;
+%type <tnode_ptr> userDataTypeAccess;
 
 %left PLUS MINUS
 %left MUL DIV
@@ -122,7 +123,7 @@ dataTypeDecln: TYPEDEF dataTypeName '{' fieldDeclarations '}' {
 		Tinstall($2 -> NAME, current_flist);
 		struct Typetable *current_ttentry = Tlookup($2 -> NAME);
 
-		int fieldIndex = 0;
+		int fieldIndex = 1;	// cannot be zero because the zeroth entry is reserved for next free block
 
 		printf("ID'ed data type %s\n", $2 -> NAME);
 		temp_flist = current_flist;
@@ -531,7 +532,13 @@ id_list:	id_list ',' ID	{
 	}
 	;
 
-stmt: ID ASGN expr ';'	{
+stmt: userDataTypeAccess ASGN expr ';' {
+			printf("hello world!");
+		}
+
+		/*
+
+		|	ID ASGN expr ';'	{
 			//printf("Making ID node for %s\n", $1 -> NAME);
 			$1 -> ArgList = current_arg_list;
 			$1 -> Lentry = current_local_symbol_table;
@@ -564,6 +571,15 @@ stmt: ID ASGN expr ';'	{
 			////printf("Making ID array node\n");
 			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, new_id_node, $6, NULL, current_local_symbol_table, FALSE);
 		}
+
+		*/
+
+		| ALLOC '(' userDataTypeAccess ')' ';' {
+			$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_ALLOC, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
+
+		}
+
+		/*
 
 		| READ '(' ID ')' ';'	{
 			$3 -> ArgList = current_arg_list;
@@ -602,9 +618,27 @@ stmt: ID ASGN expr ';'	{
 			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, current_arg_list, new_id_node, NULL, NULL, current_local_symbol_table, FALSE);
 		}
 
+		*/
+
+		| READ '(' userDataTypeAccess ')' ';' {
+
+			if ($3 -> TYPE != VAR_TYPE_INT) {
+				printf("Line %d, error: you can read only into an integer variable, exiting.\n", line_no + 1);
+				exit(0);
+			}
+
+			// this is READ for arrays
+			// reason why you can't have READ(expr) (similar to WRITE below)
+			// is because READ can only read into VARIABLES (and not expressions).
+			// e.g. any statements of the form read(a + b + c) (which is an expr) is
+			// wrong, but write(a + b + c) works
+
+			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
+		}
+
 		| WRITE '(' expr ')' ';' {
 			if ($3 -> TYPE != VAR_TYPE_INT) {
- 			 printf("WRITE variable is of incorrect type; exiting.\n");
+ 			 printf("WRITE variable was of type %s (should have been integer); exiting.\n", $3 -> TYPE -> name);
  			 exit(0);
  		  }
 			$$ = TreeCreate(VAR_TYPE_VOID, WRITE, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
@@ -633,6 +667,66 @@ stmt: ID ASGN expr ';'	{
 		}
 		;
 
+userDataTypeAccess: userDataTypeAccess '.' ID {
+
+		// check if ID is a type other than integer and boolean
+		// but this is a little tricky
+		// you have to draw up the type of userDataTypeAccess ($1)
+		// then go through its field entries in the type table
+
+		struct Typetable *uDataType = $1 -> TYPE;
+		struct Fieldlist *flist = uDataType -> fields;
+		while (flist != NULL) {
+			if (strcmp(flist -> name, $3 -> NAME) == 0) {
+				break;
+			}
+			flist = flist -> next;
+		}
+
+		$$ = TreeCreate(flist -> type, NODETYPE_STRUCT_ELEM_ACCESS, -1, NULL, current_arg_list, $1, $3, NULL, current_local_symbol_table, FALSE);
+
+	}
+
+	// we don't have to check for userDataTypeAccess '.' ID '[' expr ']' because a structure can never have
+	// an array as a member
+
+	| ID {
+		$1 -> ArgList = current_arg_list;
+		$1 -> Lentry = current_local_symbol_table;
+		$1 -> TYPE = find_id_type($1);
+		$1 -> array_or_not = find_array_or_not($1);
+		$$ = $1;
+	}
+
+	| ID '[' expr ']' {
+
+		// to deal with the case of plain old array access
+
+		if ($1 -> TYPE == VAR_TYPE_BOOL || $1 -> TYPE == VAR_TYPE_INT) {
+			// can be referencing an array
+ 		 //printf("ID given array\n");
+ 		 //printf("name = %s\n", $1 -> NAME);
+ 		 $1 -> ArgList = current_arg_list;
+ 		 $1 -> Lentry = current_local_symbol_table;
+ 		 $1 -> TYPE = find_id_type($1);
+ 		 $1 -> array_or_not = find_array_or_not($1);
+ 		 if ($3 -> TYPE != VAR_TYPE_INT) {
+ 			 printf("Line %d: incorrect type for array index; exiting.\n", line_no + 1);
+ 			 exit(0);
+ 		 }
+ 		 if (!$1 -> array_or_not) {
+ 			 printf("Trying to index into a non-array variable %s; exiting.\n", $1 -> NAME);
+ 			 exit(0);
+ 		 }
+ 		 $$ = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
+		}
+
+		// to deal with if structures are involved
+
+		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_STRUCT_ELEM_ACCESS, -1, $1 -> NAME, current_arg_list, $1, NULL, $3, current_local_symbol_table, FALSE);
+	}
+	;
+
 // the arguments to functions can be
 ArgListFunctionCall:	ArgListFunctionCall ',' expr {
 		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, current_arg_list, $1, $3, NULL, NULL, FALSE);
@@ -657,6 +751,8 @@ expr: expr PLUS expr	{
 	 | '(' expr ')'		{$$ = TreeCreate($2 -> TYPE, PARENS, -1, NULL, NULL, $2, NULL, NULL, current_local_symbol_table, FALSE);}
 
 	 | NUM			{$1 -> TYPE = VAR_TYPE_INT; $$ = $1;}
+
+	 /*
 
 	 | ID {
 		$1 -> Lentry = current_local_symbol_table;
@@ -684,6 +780,12 @@ expr: expr PLUS expr	{
 			 exit(0);
 		 }
 		 $$ = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
+	 }
+
+	 */
+
+	 | userDataTypeAccess {
+		 	printf("hello world!");
 	 }
 
 	 | ID '(' ArgListFunctionCall ')' {

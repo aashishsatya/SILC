@@ -39,6 +39,7 @@ NL 	[\n]
 "main" {return MAIN;}
 "return" {return RETURN;}
 "typedef" {return TYPEDEF;}
+"alloc" {return ALLOC;}
 
 [a-z][a-zA-Z0-9]* {
 
@@ -65,7 +66,7 @@ NL 	[\n]
 ">=" {return GE;}
 "==" {return EQ;}
 [=]  {return ASGN;}
-[();\[\],\{\}\&]	{return *yytext;}
+[();\[\],\{\}\&\.]	{return *yytext;}
 
 .	{printf("The unknown character is: %s\n", yytext);yyerror("unknown character\n");exit(1);}
 

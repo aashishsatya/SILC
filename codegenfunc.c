@@ -44,6 +44,8 @@ int code_gen(struct Tnode *ptr) {
   struct ArgStruct *function_arg_list = NULL; // to check if the current variable is in the declarations list
   struct ArgStruct *list_of_fn_args = NULL; // to traverse through the declarations list to determine if call by value or reference
   struct Tnode *arg_to_evaluate;
+  struct Typetable *variable_type;
+  struct Fieldlist *flist;
 
   //printf("In code_gen...\n");
   //printf("ptr -> TYPE = %d\n", ptr -> TYPE);
@@ -110,6 +112,9 @@ int code_gen(struct Tnode *ptr) {
       return next_register;
       break;
     case ASGN:
+
+      // TODO: this has to be modified for structures
+
       //printf("In ASGN...\n");
       // simple question of a move
       // but before that you have to write code for your RHS
@@ -178,17 +183,157 @@ int code_gen(struct Tnode *ptr) {
       }
       deallocate_register();  // deallocate rhs
       break;
+
+    case NODETYPE_ALLOC:
+
+      // get the address of the structure to allocate
+      ans = code_gen(ptr -> Ptr1);
+      temp = allocate_register();
+      // find the next free block
+      fprintf(fp, "MOV R%d, 1024\n", temp);
+      fprintf(fp, "MOV [R%d], [R%d]\n", ans, temp);
+      // update the heap values
+      fprintf(fp, "MOV [R%d], [R%d]\n", temp, ans);
+      deallocate_register();  // free temp
+      deallocate_register();  // free ans
+      return -1;
+
+    case NODETYPE_STRUCT_ELEM_ACCESS:
+
+      // this is the idea
+      // if it's a user defined data type that's being requested, then we give away the address because
+      // the user is trying to allocate memory into the same
+      // if it's an integer or boolean variable that's being requested, we return the value
+
+      if (ptr -> Ptr2 == NULL) {
+        // phew, not a nested structure
+        // kind of makes our job easy
+        // just return the binding
+        // but check if it's an array
+        if (ptr -> Ptr3 == NULL) {
+          // not even an array
+          // just look up the binding and return the value
+          // check local symbol table
+          // load it into a register for now and return the register value
+          lhs = allocate_register();
+          //printf("In ID...\n");
+          // look up the variable
+          //printf("Looking up %s\n", ptr -> NAME);
+          local_sym_table_ptr = Llookup(ptr -> Lentry, ptr -> NAME);
+          if (local_sym_table_ptr != NULL) {
+            reqd_binding = local_sym_table_ptr -> LOCAL_SIM_BINDING;
+          }
+          else {
+            // check argument list
+            function_arg_list = ArgLookup(ptr -> ArgList, ptr -> NAME);
+            if (function_arg_list != NULL) {
+              reqd_binding = function_arg_list -> ARG_SIM_BINDING;
+            }
+          }
+          // please be careful about the order of evaluation of the || (and its
+          // breakability on finding an answer thereof)
+          if (local_sym_table_ptr != NULL || function_arg_list != NULL) {
+            next_register = allocate_register();
+            temp = allocate_register();
+            fprintf(fp, "MOV R%d, BP\n", next_register);
+            fprintf(fp, "MOV R%d, %d\n", temp, reqd_binding);
+            fprintf(fp, "ADD R%d, R%d\n", next_register, temp);
+
+            // TODO: sort this out
+
+            // if the argument is called by reference, then [BP + 2] will contain the address of the
+            // location where the result is to be stored
+            // the intended code stores the result at [R_next_register]
+            // so if we set R_next_register to be [BP + 2] (in case of call by reference) then both cases should work
+            if (function_arg_list != NULL && function_arg_list -> PASS_TYPE == PASS_BY_REFERENCE)
+              fprintf(fp, "MOV R%d, [R%d]\n", next_register, next_register);
+
+
+            fprintf(fp, "MOV R%d, R%d\n", lhs, next_register);
+            // lhs now contains BP + binding
+            deallocate_register();  // free temp
+            deallocate_register();  // free next_register
+          }
+          else {
+            symbol_table_ptr = Glookup(ptr -> NAME);
+            if (ptr -> Ptr1 == NULL) {
+              // ptr is not the ID for an array
+              // so just access the memory location directly stored in its binding
+              fprintf(fp, "MOV R%d, [%d]\n", lhs, symbol_table_ptr -> SIM_BINDING);
+            }
+            else {
+              // whoopsie, ID is an array
+              // get and find the index of the required element
+              rhs = code_gen(ptr -> Ptr1);
+              temp = allocate_register();
+              // now we need to add this to the base address of the array
+              fprintf(fp, "MOV R%d, %d\n", temp, symbol_table_ptr -> SIM_BINDING);
+              fprintf(fp, "ADD R%d, R%d\n", rhs, temp);
+              deallocate_register();  // release temp
+              // now we have the proper address to read into stored in rhs
+              // move the value in the memory location in rhs
+              fprintf(fp, "MOV R%d, [R%d]\n", lhs, rhs);
+              deallocate_register();  // free rhs
+            }
+          }
+          return lhs;
+          break;
+        }
+        else {
+          // just do whatever you did for ID but add the index value to it too
+          // and since it's an array we can be guaranteed that it will be declared only in the global symbol table
+          ans = code_gen(ptr -> Ptr3);
+          symbol_table_ptr = Glookup(ptr -> NAME);
+          temp = allocate_register();
+          fprintf(fp, "MOV R%d, %d\n", temp, symbol_table_ptr -> SIM_BINDING);
+          fprintf(fp, "ADD R%d, R%d\n", ans, temp); // ans will have the required address now
+          deallocate_register();  // deallocate temp
+          return ans;
+        }
+      }
+      else {
+        // we're accessing a structure element
+        // get the address of the base structure
+        ans = code_gen(ptr -> Ptr1);
+        // check the type of the variable we're accessing
+        variable_type = find_id_type(ptr -> Ptr1);
+        flist = variable_type -> fields;
+        while (flist != NULL) {
+          if (strcmp(flist -> name, ptr -> Ptr2 -> NAME) == 0) {
+            variable_type = flist -> type;
+            break;
+          }
+          flist = flist -> next;
+        }
+        // we need the address anyway
+        // which is nothing but base address + fieldIndex
+        temp = allocate_register();
+        fprintf(fp, "MOV R%d, %d\n", temp, flist -> fieldIndex);
+        fprintf(fp, "ADD R%d, R%d\n", ans, temp);
+        // ans now has the required address
+        // if it's an integer or boolean get the value
+        /*if (variable_type == VAR_TYPE_INT || variable_type == VAR_TYPE_BOOL) {
+          fprintf(fp, "MOV R%d, [R%d]\n", ans, ans);
+        }*/
+        return ans;
+      }
+      return -1;
+
     case WRITE:
       // evaluate the argument within WRITE
       //printf("In WRITE...\n");
       lhs = code_gen(ptr -> Ptr1);
-      fprintf(fp, "OUT R%d\n", lhs);
+      temp = allocate_register();
+      fprintf(fp, "MOV R%d, [R%d]\n", temp, lhs);
+      fprintf(fp, "OUT R%d\n", temp);
+      deallocate_register();  // free temp
       deallocate_register();  // give back lhs register
       break;
+
     case READ:
       lhs = allocate_register();
       fprintf(fp, "IN R%d\n", lhs);
-      // check local symbol table
+      /*// check local symbol table
       local_sym_table_ptr = Llookup(ptr -> Lentry, ptr -> Ptr1 -> NAME);
       if (local_sym_table_ptr != NULL) {
         reqd_binding = local_sym_table_ptr -> LOCAL_SIM_BINDING;
@@ -249,7 +394,14 @@ int code_gen(struct Tnode *ptr) {
         }
       }
       deallocate_register();  // release lhs
+      */
+      rhs = code_gen(ptr -> Ptr1);
+      // rhs will now store the address of where we need to move it to
+      fprintf(fp, "MOV [R%d], R%d\n", rhs, lhs);
+      deallocate_register();  // free rhs
+      deallocate_register();  // free lhs
       break;
+
     case ID:
       // the value of the ID is needed
       // load it into a register for now and return the register value

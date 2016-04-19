@@ -339,7 +339,6 @@ struct ArgStruct *ArgLookup(struct ArgStruct *current_args, char *NAME) {
 }
 
 int find_array_or_not(struct Tnode *ptr) {
-  int id_type;
   // check the local symbol table
   struct Lsymbol *ltemp = Llookup(ptr -> Lentry, ptr -> NAME);
   if (ltemp != NULL) {

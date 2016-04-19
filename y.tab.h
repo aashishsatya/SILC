@@ -73,7 +73,8 @@ extern int yydebug;
     RETURN = 283,
     LE = 284,
     GE = 285,
-    TYPEDEF = 286
+    TYPEDEF = 286,
+    ALLOC = 287
   };
 #endif
 /* Tokens.  */
@@ -106,6 +107,7 @@ extern int yydebug;
 #define LE 284
 #define GE 285
 #define TYPEDEF 286
+#define ALLOC 287
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -119,7 +121,7 @@ union YYSTYPE
 	struct Fieldlist *fields_ptr;
 	struct Typetable *type_entry;
 
-#line 123 "y.tab.h" /* yacc.c:1909  */
+#line 125 "y.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
