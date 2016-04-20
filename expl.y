@@ -575,6 +575,7 @@ stmt: userDataTypeAccess ASGN expr ';' {
 		*/
 
 		| ALLOC '(' userDataTypeAccess ')' ';' {
+			printf("ID'ED ALLOC...\n");
 			$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_ALLOC, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 
 		}

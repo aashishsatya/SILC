@@ -136,6 +136,7 @@ int get_address(struct Tnode *ptr) {
         fprintf(fp, "MOV R%d, [R%d] // get the memory location allocated to the structure variable\n", ans, ans);
         fprintf(fp, "MOV R%d, %d\n", temp, flist -> fieldIndex);
         fprintf(fp, "ADD R%d, R%d\n", ans, temp);
+        deallocate_register();  // free temp
         return ans;
       }
       return -1;
@@ -297,6 +298,8 @@ int code_gen(struct Tnode *ptr) {
 
     case ASGN:
 
+      printf("In ASGN...\n");
+
       // TODO: this has to be modified for structures
 
       //printf("In ASGN...\n");
@@ -309,6 +312,7 @@ int code_gen(struct Tnode *ptr) {
       fprintf(fp, "MOV [R%d], R%d\n", lhs, rhs);
       deallocate_register();
       deallocate_register();
+      return -1;
 
       /*
       // now, the LHS would already have a memory location alloted to it
@@ -379,6 +383,7 @@ int code_gen(struct Tnode *ptr) {
 
     case NODETYPE_ALLOC:
 
+      printf("In ALLOC for %s...\n", ptr -> NAME);
       // get the address of the structure to allocate
       temp = allocate_register();
       // find the next free block
@@ -473,7 +478,7 @@ int code_gen(struct Tnode *ptr) {
       else {
         // we're accessing a structure element
         // get the address of the base structure
-        ans = code_gen(ptr -> Ptr1);
+        ans = get_address(ptr -> Ptr1);
         // check the type of the variable we're accessing
         variable_type = find_id_type(ptr -> Ptr1);
         flist = variable_type -> fields;
@@ -490,6 +495,7 @@ int code_gen(struct Tnode *ptr) {
         fprintf(fp, "MOV R%d, [R%d] // get the memory location allocated to the structure variable\n", ans, ans);
         fprintf(fp, "MOV R%d, %d\n", temp, flist -> fieldIndex);
         fprintf(fp, "ADD R%d, R%d\n", ans, temp);
+        fprintf(fp, "MOV R%d, [R%d]\n", ans, ans);
         // ans now has the required value
         return ans;
       }
@@ -505,6 +511,7 @@ int code_gen(struct Tnode *ptr) {
       break;
 
     case READ:
+      printf("In READ...\n");
       lhs = allocate_register();
       fprintf(fp, "IN R%d\n", lhs);
       rhs = get_address(ptr -> Ptr1);
