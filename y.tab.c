@@ -509,9 +509,9 @@ static const yytype_uint16 yyrline[] =
      169,   212,   216,   223,   224,   227,   309,   313,   317,   322,
      333,   343,   352,   363,   442,   444,   445,   448,   450,   456,
      462,   469,   470,   475,   477,   478,   483,   489,   491,   496,
-     502,   507,   512,   525,   535,   577,   623,   639,   647,   655,
-     663,   670,   693,   701,   731,   735,   739,   742,   745,   747,
-     749,   751,   753,   787,   791,   825,   829,   833,   837,   841
+     502,   507,   512,   525,   535,   577,   623,   639,   649,   657,
+     665,   672,   695,   703,   733,   737,   741,   744,   747,   749,
+     751,   753,   755,   789,   793,   827,   831,   835,   839,   843
 };
 #endif
 
@@ -2010,7 +2010,7 @@ yyreduce:
   case 44:
 #line 535 "expl.y" /* yacc.c:1646  */
     {
-			printf("hello world!");
+			(yyval.tnode_ptr) = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, (yyvsp[-3].tnode_ptr), (yyvsp[-1].tnode_ptr), NULL, current_local_symbol_table, FALSE);
 		}
 #line 2016 "y.tab.c" /* yacc.c:1646  */
     break;
@@ -2051,13 +2051,15 @@ yyreduce:
  			 printf("WRITE variable was of type %s (should have been integer); exiting.\n", (yyvsp[-2].tnode_ptr) -> TYPE -> name);
  			 exit(0);
  		  }
+			printf("Type of $3 in WRITE is %d\n", (yyvsp[-2].tnode_ptr) -> NODETYPE);
+			printf("(for comparison, ALLOC is %d)\n", NODETYPE_ALLOC);
 			(yyval.tnode_ptr) = TreeCreate(VAR_TYPE_VOID, WRITE, -1, NULL, current_arg_list, (yyvsp[-2].tnode_ptr), NULL, NULL, current_local_symbol_table, FALSE);
 		}
-#line 2057 "y.tab.c" /* yacc.c:1646  */
+#line 2059 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 48:
-#line 647 "expl.y" /* yacc.c:1646  */
+#line 649 "expl.y" /* yacc.c:1646  */
     {
 			if ((yyvsp[-5].tnode_ptr) -> TYPE != VAR_TYPE_BOOL) {
  			 printf("Incorrect type for if condition statement; exiting.\n");
@@ -2065,11 +2067,11 @@ yyreduce:
  		  }
 			(yyval.tnode_ptr) = TreeCreate(VAR_TYPE_VOID, IF, -1, NULL, current_arg_list, (yyvsp[-5].tnode_ptr), (yyvsp[-2].tnode_ptr), NULL, current_local_symbol_table, FALSE);
 		}
-#line 2069 "y.tab.c" /* yacc.c:1646  */
+#line 2071 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 49:
-#line 655 "expl.y" /* yacc.c:1646  */
+#line 657 "expl.y" /* yacc.c:1646  */
     {
 			if ((yyvsp[-5].tnode_ptr) -> TYPE != VAR_TYPE_BOOL) {
  			 printf("Incorrect type for while loop condition; exiting.\n");
@@ -2077,21 +2079,21 @@ yyreduce:
  		  }
 			(yyval.tnode_ptr) = TreeCreate(VAR_TYPE_VOID, WHILE, -1, NULL, current_arg_list, (yyvsp[-5].tnode_ptr), (yyvsp[-2].tnode_ptr), NULL, current_local_symbol_table, FALSE);
 		}
-#line 2081 "y.tab.c" /* yacc.c:1646  */
+#line 2083 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 50:
-#line 663 "expl.y" /* yacc.c:1646  */
+#line 665 "expl.y" /* yacc.c:1646  */
     {
 			(yyval.tnode_ptr) = TreeCreate(VAR_TYPE_VOID, NODETYPE_RETURN_STMT, -1, NULL, current_arg_list, (yyvsp[-1].tnode_ptr), NULL, NULL, current_local_symbol_table, FALSE);
 			function_return_statement_type = (yyvsp[-1].tnode_ptr) -> TYPE;
 			no_return_statements++;
 		}
-#line 2091 "y.tab.c" /* yacc.c:1646  */
+#line 2093 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 51:
-#line 670 "expl.y" /* yacc.c:1646  */
+#line 672 "expl.y" /* yacc.c:1646  */
     {
 
 		// check if ID is a type other than integer and boolean
@@ -2108,14 +2110,14 @@ yyreduce:
 			flist = flist -> next;
 		}
 
-		(yyval.tnode_ptr) = TreeCreate(flist -> type, NODETYPE_STRUCT_ELEM_ACCESS, -1, NULL, current_arg_list, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), NULL, current_local_symbol_table, FALSE);
+		(yyval.tnode_ptr) = TreeCreate(flist -> type, NODETYPE_STRUCT_ELEM_ACCESS, -1, (yyvsp[-2].tnode_ptr) -> NAME, current_arg_list, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), NULL, current_local_symbol_table, FALSE);
 
 	}
-#line 2115 "y.tab.c" /* yacc.c:1646  */
+#line 2117 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 52:
-#line 693 "expl.y" /* yacc.c:1646  */
+#line 695 "expl.y" /* yacc.c:1646  */
     {
 		(yyvsp[0].tnode_ptr) -> ArgList = current_arg_list;
 		(yyvsp[0].tnode_ptr) -> Lentry = current_local_symbol_table;
@@ -2123,11 +2125,11 @@ yyreduce:
 		(yyvsp[0].tnode_ptr) -> array_or_not = find_array_or_not((yyvsp[0].tnode_ptr));
 		(yyval.tnode_ptr) = (yyvsp[0].tnode_ptr);
 	}
-#line 2127 "y.tab.c" /* yacc.c:1646  */
+#line 2129 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 53:
-#line 701 "expl.y" /* yacc.c:1646  */
+#line 703 "expl.y" /* yacc.c:1646  */
     {
 
 		// to deal with the case of plain old array access
@@ -2153,81 +2155,81 @@ yyreduce:
 
 		// to deal with if structures are involved
 
-		(yyval.tnode_ptr) = TreeCreate(VAR_TYPE_VOID, NODETYPE_STRUCT_ELEM_ACCESS, -1, (yyvsp[-3].tnode_ptr) -> NAME, current_arg_list, (yyvsp[-3].tnode_ptr), NULL, (yyvsp[-1].tnode_ptr), current_local_symbol_table, FALSE);
+		(yyval.tnode_ptr) = TreeCreate((yyvsp[-3].tnode_ptr) -> TYPE, NODETYPE_STRUCT_ELEM_ACCESS, -1, (yyvsp[-3].tnode_ptr) -> NAME, current_arg_list, (yyvsp[-3].tnode_ptr), NULL, (yyvsp[-1].tnode_ptr), current_local_symbol_table, FALSE);
 	}
-#line 2159 "y.tab.c" /* yacc.c:1646  */
+#line 2161 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 54:
-#line 731 "expl.y" /* yacc.c:1646  */
+#line 733 "expl.y" /* yacc.c:1646  */
     {
 		(yyval.tnode_ptr) = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, current_arg_list, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), NULL, NULL, FALSE);
 	}
-#line 2167 "y.tab.c" /* yacc.c:1646  */
+#line 2169 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 55:
-#line 735 "expl.y" /* yacc.c:1646  */
+#line 737 "expl.y" /* yacc.c:1646  */
     {
 		(yyval.tnode_ptr) = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_ARG_LIST, -1, NULL, current_arg_list, NULL, (yyvsp[0].tnode_ptr), NULL, NULL, FALSE);
 	}
-#line 2175 "y.tab.c" /* yacc.c:1646  */
+#line 2177 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 56:
-#line 739 "expl.y" /* yacc.c:1646  */
+#line 741 "expl.y" /* yacc.c:1646  */
     {}
-#line 2181 "y.tab.c" /* yacc.c:1646  */
+#line 2183 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 57:
-#line 742 "expl.y" /* yacc.c:1646  */
+#line 744 "expl.y" /* yacc.c:1646  */
     {
 		(yyval.tnode_ptr) = makeOperatorNode(PLUS, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);
 	}
-#line 2189 "y.tab.c" /* yacc.c:1646  */
+#line 2191 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 58:
-#line 745 "expl.y" /* yacc.c:1646  */
+#line 747 "expl.y" /* yacc.c:1646  */
     {(yyval.tnode_ptr) = makeOperatorNode(MUL, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);}
-#line 2195 "y.tab.c" /* yacc.c:1646  */
+#line 2197 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 59:
-#line 747 "expl.y" /* yacc.c:1646  */
+#line 749 "expl.y" /* yacc.c:1646  */
     {(yyval.tnode_ptr) = makeOperatorNode(MINUS, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);}
-#line 2201 "y.tab.c" /* yacc.c:1646  */
+#line 2203 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 60:
-#line 749 "expl.y" /* yacc.c:1646  */
+#line 751 "expl.y" /* yacc.c:1646  */
     {(yyval.tnode_ptr) = makeOperatorNode(DIV, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);}
-#line 2207 "y.tab.c" /* yacc.c:1646  */
+#line 2209 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 61:
-#line 751 "expl.y" /* yacc.c:1646  */
+#line 753 "expl.y" /* yacc.c:1646  */
     {(yyval.tnode_ptr) = TreeCreate((yyvsp[-1].tnode_ptr) -> TYPE, PARENS, -1, NULL, NULL, (yyvsp[-1].tnode_ptr), NULL, NULL, current_local_symbol_table, FALSE);}
-#line 2213 "y.tab.c" /* yacc.c:1646  */
+#line 2215 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 62:
-#line 753 "expl.y" /* yacc.c:1646  */
+#line 755 "expl.y" /* yacc.c:1646  */
     {(yyvsp[0].tnode_ptr) -> TYPE = VAR_TYPE_INT; (yyval.tnode_ptr) = (yyvsp[0].tnode_ptr);}
-#line 2219 "y.tab.c" /* yacc.c:1646  */
+#line 2221 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 63:
-#line 787 "expl.y" /* yacc.c:1646  */
+#line 789 "expl.y" /* yacc.c:1646  */
     {
-		 	printf("hello world!");
+		 	(yyval.tnode_ptr) = (yyvsp[0].tnode_ptr);
 	 }
-#line 2227 "y.tab.c" /* yacc.c:1646  */
+#line 2229 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 64:
-#line 791 "expl.y" /* yacc.c:1646  */
+#line 793 "expl.y" /* yacc.c:1646  */
     {
 		 // the most complex of them all, function call
 		 // just create a new node that will be processed by codegenfunc.c
@@ -2261,51 +2263,51 @@ yyreduce:
 		 (yyval.tnode_ptr) = TreeCreate(function_call_lookup -> TYPE, NODETYPE_FUNCTION_CALL, -1, (yyvsp[-3].tnode_ptr) -> NAME, current_arg_list, (yyvsp[-1].tnode_ptr), NULL, NULL, current_local_symbol_table, FALSE);
 		 //current_arg_list = NULL;
 	 }
-#line 2265 "y.tab.c" /* yacc.c:1646  */
+#line 2267 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 65:
-#line 825 "expl.y" /* yacc.c:1646  */
+#line 827 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(LT, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);
 	 }
-#line 2273 "y.tab.c" /* yacc.c:1646  */
+#line 2275 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 66:
-#line 829 "expl.y" /* yacc.c:1646  */
+#line 831 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(GT, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);
 	 }
-#line 2281 "y.tab.c" /* yacc.c:1646  */
+#line 2283 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 67:
-#line 833 "expl.y" /* yacc.c:1646  */
+#line 835 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(EQ, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);
 	 }
-#line 2289 "y.tab.c" /* yacc.c:1646  */
+#line 2291 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 68:
-#line 837 "expl.y" /* yacc.c:1646  */
+#line 839 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(LE, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);
 	 }
-#line 2297 "y.tab.c" /* yacc.c:1646  */
+#line 2299 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 69:
-#line 841 "expl.y" /* yacc.c:1646  */
+#line 843 "expl.y" /* yacc.c:1646  */
     {
 		 (yyval.tnode_ptr) = makeOperatorNode(GE, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), current_local_symbol_table, current_arg_list);
 	 }
-#line 2305 "y.tab.c" /* yacc.c:1646  */
+#line 2307 "y.tab.c" /* yacc.c:1646  */
     break;
 
 
-#line 2309 "y.tab.c" /* yacc.c:1646  */
+#line 2311 "y.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2533,7 +2535,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 846 "expl.y" /* yacc.c:1906  */
+#line 848 "expl.y" /* yacc.c:1906  */
 
 
 yyerror(char const *s)

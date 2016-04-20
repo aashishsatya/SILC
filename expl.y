@@ -641,6 +641,8 @@ stmt: userDataTypeAccess ASGN expr ';' {
  			 printf("WRITE variable was of type %s (should have been integer); exiting.\n", $3 -> TYPE -> name);
  			 exit(0);
  		  }
+			printf("Type of $3 in WRITE is %d\n", $3 -> NODETYPE);
+			printf("(for comparison, ALLOC is %d)\n", NODETYPE_ALLOC);
 			$$ = TreeCreate(VAR_TYPE_VOID, WRITE, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 		}
 
