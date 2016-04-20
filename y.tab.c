@@ -2108,7 +2108,7 @@ yyreduce:
 			flist = flist -> next;
 		}
 
-		(yyval.tnode_ptr) = TreeCreate(flist -> type, NODETYPE_STRUCT_ELEM_ACCESS, -1, NULL, current_arg_list, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), NULL, current_local_symbol_table, FALSE);
+		(yyval.tnode_ptr) = TreeCreate(flist -> type, NODETYPE_STRUCT_ELEM_ACCESS, -1, (yyvsp[-2].tnode_ptr) -> NAME, current_arg_list, (yyvsp[-2].tnode_ptr), (yyvsp[0].tnode_ptr), NULL, current_local_symbol_table, FALSE);
 
 	}
 #line 2115 "y.tab.c" /* yacc.c:1646  */

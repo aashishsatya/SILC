@@ -321,25 +321,9 @@ int code_gen(struct Tnode *ptr) {
           }
           else {
             symbol_table_ptr = Glookup(ptr -> NAME);
-            if (ptr -> Ptr1 == NULL) {
-              // ptr is not the ID for an array
-              // so just access the memory location directly stored in its binding
-              fprintf(fp, "MOV R%d, [%d]\n", lhs, symbol_table_ptr -> SIM_BINDING);
-            }
-            else {
-              // whoopsie, ID is an array
-              // get and find the index of the required element
-              rhs = code_gen(ptr -> Ptr1);
-              temp = allocate_register();
-              // now we need to add this to the base address of the array
-              fprintf(fp, "MOV R%d, %d\n", temp, symbol_table_ptr -> SIM_BINDING);
-              fprintf(fp, "ADD R%d, R%d\n", rhs, temp);
-              deallocate_register();  // release temp
-              // now we have the proper address to read into stored in rhs
-              // move the value in the memory location in rhs
-              fprintf(fp, "MOV R%d, [R%d]\n", lhs, rhs);
-              deallocate_register();  // free rhs
-            }
+            // ptr is not the ID for an array
+            // so just access the memory location directly stored in its binding
+            fprintf(fp, "MOV R%d, %d\n", lhs, symbol_table_ptr -> SIM_BINDING);            
           }
           return lhs;
           break;
