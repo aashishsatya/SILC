@@ -253,25 +253,9 @@ int code_gen(struct Tnode *ptr) {
           }
           else {
             symbol_table_ptr = Glookup(ptr -> NAME);
-            if (ptr -> Ptr1 == NULL) {
-              // ptr is not the ID for an array
-              // so just access the memory location directly stored in its binding
-              fprintf(fp, "MOV R%d, [%d]\n", lhs, symbol_table_ptr -> SIM_BINDING);
-            }
-            else {
-              // whoopsie, ID is an array
-              // get and find the index of the required element
-              rhs = code_gen(ptr -> Ptr1);
-              temp = allocate_register();
-              // now we need to add this to the base address of the array
-              fprintf(fp, "MOV R%d, %d\n", temp, symbol_table_ptr -> SIM_BINDING);
-              fprintf(fp, "ADD R%d, R%d\n", rhs, temp);
-              deallocate_register();  // release temp
-              // now we have the proper address to read into stored in rhs
-              // move the value in the memory location in rhs
-              fprintf(fp, "MOV R%d, [R%d]\n", lhs, rhs);
-              deallocate_register();  // free rhs
-            }
+            // ptr is not the ID for an array
+            // so just access the memory location directly stored in its binding
+            fprintf(fp, "MOV R%d, [%d]\n", lhs, symbol_table_ptr -> SIM_BINDING);
           }
           return lhs;
           break;
@@ -320,16 +304,24 @@ int code_gen(struct Tnode *ptr) {
       // evaluate the argument within WRITE
       //printf("In WRITE...\n");
       lhs = code_gen(ptr -> Ptr1);
-      temp = allocate_register();
-      fprintf(fp, "MOV R%d, [R%d]\n", temp, lhs);
-      fprintf(fp, "OUT R%d\n", temp);
-      deallocate_register();  // free temp
+      fprintf(fp, "OUT R%d\n", lhs);
       deallocate_register();  // give back lhs register
       break;
 
     case READ:
       lhs = allocate_register();
       fprintf(fp, "IN R%d\n", lhs);
+
+
+
+
+
+
+
+
+
+
+
       /*// check local symbol table
       local_sym_table_ptr = Llookup(ptr -> Lentry, ptr -> Ptr1 -> NAME);
       if (local_sym_table_ptr != NULL) {
@@ -392,11 +384,6 @@ int code_gen(struct Tnode *ptr) {
       }
       deallocate_register();  // release lhs
       */
-      rhs = code_gen(ptr -> Ptr1);
-      // rhs will now store the address of where we need to move it to
-      fprintf(fp, "MOV [R%d], R%d\n", rhs, lhs);
-      deallocate_register();  // free rhs
-      deallocate_register();  // free lhs
       break;
 
     case ID:
