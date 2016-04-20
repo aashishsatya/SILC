@@ -695,7 +695,7 @@ userDataTypeAccess: userDataTypeAccess '.' ID {
 		$1 -> Lentry = current_local_symbol_table;
 		$1 -> TYPE = find_id_type($1);
 		$1 -> array_or_not = find_array_or_not($1);
-		$$ = $1;
+		$$ = TreeCreate($1 -> TYPE, NODETYPE_STRUCT_ELEM_ACCESS, -1, $1 -> NAME, current_arg_list, $1, NULL, NULL, current_local_symbol_table, FALSE);
 	}
 
 	| ID '[' expr ']' {

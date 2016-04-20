@@ -175,6 +175,8 @@ int code_gen(struct Tnode *ptr) {
         fprintf(fp, "MOV R%d, [R%d]\n", rhs, rhs);
       }
       fprintf(fp, "MOV [R%d], R%d\n", lhs, rhs);
+      deallocate_register();
+      deallocate_register();
       break;
 
       /*
@@ -246,8 +248,8 @@ int code_gen(struct Tnode *ptr) {
         }
       }
       deallocate_register();  // deallocate rhs
-      */
       break;
+      */
 
     case NODETYPE_ALLOC:
 
@@ -255,20 +257,21 @@ int code_gen(struct Tnode *ptr) {
       ans = code_gen(ptr -> Ptr1);
       temp = allocate_register();
       // find the next free block
-      fprintf(fp, "MOV R%d, 1024\n", temp);
+      fprintf(fp, "MOV R%d, 1024  // code for alloc begins here\n", temp);
       fprintf(fp, "MOV [R%d], [R%d]\n", ans, temp);
+      lhs = allocate_register();
       // update the heap values
-      fprintf(fp, "MOV [R%d], [R%d]\n", temp, ans);
+      fprintf(fp, "MOV R%d, [R%d]\n", lhs, temp);
+      fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
+      fprintf(fp, "MOV [R%d], [R%d]\n", temp, lhs);
+      deallocate_register();  // free lhs
       deallocate_register();  // free temp
       deallocate_register();  // free ans
       return -1;
 
     case NODETYPE_STRUCT_ELEM_ACCESS:
 
-      // this is the idea
-      // if it's a user defined data type that's being requested, then we give away the address because
-      // the user is trying to allocate memory into the same
-      // if it's an integer or boolean variable that's being requested, we return the value
+      // give the address (binding) of the required variable
 
       if (ptr -> Ptr2 == NULL) {
         // phew, not a nested structure
@@ -323,7 +326,7 @@ int code_gen(struct Tnode *ptr) {
             symbol_table_ptr = Glookup(ptr -> NAME);
             // ptr is not the ID for an array
             // so just access the memory location directly stored in its binding
-            fprintf(fp, "MOV R%d, %d\n", lhs, symbol_table_ptr -> SIM_BINDING);            
+            fprintf(fp, "MOV R%d, %d\n", lhs, symbol_table_ptr -> SIM_BINDING);
           }
           return lhs;
           break;
@@ -355,8 +358,9 @@ int code_gen(struct Tnode *ptr) {
           flist = flist -> next;
         }
         // we need the address anyway
-        // which is nothing but base address + fieldIndex
+        // which is nothing but [address pointed to by the pointer] + fieldIndex
         temp = allocate_register();
+        fprintf(fp, "MOV R%d, [R%d] // get the location allocated to the struct variable\n", ans, ans);
         fprintf(fp, "MOV R%d, %d\n", temp, flist -> fieldIndex);
         fprintf(fp, "ADD R%d, R%d\n", ans, temp);
         // ans now has the required address
@@ -364,13 +368,14 @@ int code_gen(struct Tnode *ptr) {
         /*if (variable_type == VAR_TYPE_INT || variable_type == VAR_TYPE_BOOL) {
           fprintf(fp, "MOV R%d, [R%d]\n", ans, ans);
         }*/
+        deallocate_register();
         return ans;
       }
       return -1;
 
     case WRITE:
       // evaluate the argument within WRITE
-      //printf("In WRITE...\n");
+      // printf("In WRITE...\n");
       lhs = code_gen(ptr -> Ptr1);
       if (ptr -> Ptr1 -> NODETYPE == NODETYPE_STRUCT_ELEM_ACCESS) {
         printf("Write in struct...\n");
@@ -450,7 +455,7 @@ int code_gen(struct Tnode *ptr) {
       fprintf(fp, "MOV [R%d], R%d\n", rhs, lhs);
       deallocate_register();  // free rhs
       deallocate_register();  // free lhs
-      break;
+      return -1;
 
     case ID:
       // the value of the ID is needed
@@ -485,7 +490,7 @@ int code_gen(struct Tnode *ptr) {
         if (function_arg_list != NULL && function_arg_list -> PASS_TYPE == PASS_BY_REFERENCE)
           fprintf(fp, "MOV R%d, [R%d]\n", next_register, next_register);
         fprintf(fp, "MOV R%d, R%d\n", lhs, next_register);
-        // next_register now contains BP + binding
+        // next_register and now contains BP + binding
         deallocate_register();  // free temp
         deallocate_register();  // free next_register
       }

@@ -2121,7 +2121,7 @@ yyreduce:
 		(yyvsp[0].tnode_ptr) -> Lentry = current_local_symbol_table;
 		(yyvsp[0].tnode_ptr) -> TYPE = find_id_type((yyvsp[0].tnode_ptr));
 		(yyvsp[0].tnode_ptr) -> array_or_not = find_array_or_not((yyvsp[0].tnode_ptr));
-		(yyval.tnode_ptr) = (yyvsp[0].tnode_ptr);
+		(yyval.tnode_ptr) = TreeCreate((yyvsp[0].tnode_ptr) -> TYPE, NODETYPE_STRUCT_ELEM_ACCESS, -1, (yyvsp[0].tnode_ptr) -> NAME, current_arg_list, (yyvsp[0].tnode_ptr), NULL, NULL, current_local_symbol_table, FALSE);
 	}
 #line 2127 "y.tab.c" /* yacc.c:1646  */
     break;
