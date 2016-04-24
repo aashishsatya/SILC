@@ -7,6 +7,8 @@ int next_register;  // this will be the variable used internally in the switch s
 int label_counter = 0;  // a concatenation of L and this value will be used for labels
 int no_local_vbls_pushed;
 
+struct Typetable *current_struct_type;
+
 int allocate_register() {
   if (register_to_use < 7) {
     register_to_use++;
@@ -31,11 +33,13 @@ int get_address(struct Tnode *ptr) {
   int lhs, rhs, ans;
   struct Lsymbol *local_sym_table_ptr;
   struct ArgStruct *function_arg_list = NULL; // to check if the current variable is in the declarations list
-  struct Typetable *variable_type;
+  //struct Typetable *variable_type;
   struct Fieldlist *flist;
   int reqd_binding; // this will store the SIM binding value of a variable in the local symbol table or argument list
   int temp;
   struct Gsymbol *symbol_table_ptr;
+
+  printf("Now dealing with %s...\n", ptr -> NAME);
 
 
   switch(ptr -> NODETYPE) {
@@ -46,6 +50,8 @@ int get_address(struct Tnode *ptr) {
       // return the value address of the variable
 
       if (ptr -> Ptr2 == NULL) {
+
+        printf("THIS PART DOES NOT GET USED.\n");
         // phew, not a nested structure
         // kind of makes our job easy
         // just return the binding
@@ -118,14 +124,18 @@ int get_address(struct Tnode *ptr) {
       else {
         // we're accessing a structure element
         // get the address of the base structure
-        printf("Trying to access %s...\n", ptr -> NAME);
         ans = get_address(ptr -> Ptr1);
         // check the type of the variable we're accessing
-        variable_type = find_id_type(ptr -> Ptr1);
-        flist = variable_type -> fields;
+        /*if (ptr -> Ptr1 -> NODETYPE == NODETYPE_STRUCT_ELEM_ACCESS)
+          variable_type = find_id_type(ptr -> Ptr1 -> Ptr2);  // this will be the member just preceding (current) ptr -> Ptr2
+        else
+          variable_type = find_id_type(ptr -> Ptr1);*/
+        //printf("Trying to access %s which is of type %s...\n", ptr-> Ptr1 -> NAME, variable_type -> name);
+        flist = current_struct_type -> fields;
         while (flist != NULL) {
+          printf("Checking against %s...\n", flist -> name);
           if (strcmp(flist -> name, ptr -> Ptr2 -> NAME) == 0) {
-            variable_type = flist -> type;
+            current_struct_type = flist -> type;
             break;
           }
           flist = flist -> next;
@@ -150,12 +160,14 @@ int get_address(struct Tnode *ptr) {
       local_sym_table_ptr = Llookup(ptr -> Lentry, ptr -> NAME);
       if (local_sym_table_ptr != NULL) {
         reqd_binding = local_sym_table_ptr -> LOCAL_SIM_BINDING;
+        current_struct_type = local_sym_table_ptr -> TYPE;
       }
       else {
         // check argument list
         function_arg_list = ArgLookup(ptr -> ArgList, ptr -> NAME);
         if (function_arg_list != NULL) {
           reqd_binding = function_arg_list -> ARG_SIM_BINDING;
+          current_struct_type = function_arg_list -> TYPE;
         }
       }
       // please be careful about the order of evaluation of the || (and its
@@ -179,6 +191,7 @@ int get_address(struct Tnode *ptr) {
       }
       else {
         symbol_table_ptr = Glookup(ptr -> NAME);
+        current_struct_type = symbol_table_ptr -> TYPE;
         if (ptr -> Ptr1 == NULL) {
           // ptr is not the ID for an array
           // so just access the memory location directly stored in its binding
@@ -199,12 +212,11 @@ int get_address(struct Tnode *ptr) {
           deallocate_register();  // free rhs
         }
       }
+
       return lhs;
       break;
   }
   return -1;
-
-
 }
 
 int code_gen(struct Tnode *ptr) {
@@ -212,6 +224,8 @@ int code_gen(struct Tnode *ptr) {
   // note that (most of) these variables absolutely have to be local
   // otherwise recursion will result in overwriting valid values
   // (of variables such as, say lhs)
+
+  printf("CODE_GEN dealing with %s...\n", ptr -> NAME);
 
   int lhs, rhs;
   int temp;
