@@ -39,7 +39,7 @@ int get_address(struct Tnode *ptr) {
   int temp;
   struct Gsymbol *symbol_table_ptr;
 
-  printf("Now dealing with %s...\n", ptr -> NAME);
+  //printf("Now dealing with %s...\n", ptr -> NAME);
 
 
   switch(ptr -> NODETYPE) {
@@ -49,7 +49,7 @@ int get_address(struct Tnode *ptr) {
 
       // return the value address of the variable
 
-      if (ptr -> Ptr2 == NULL) {
+      if (0) {
 
         printf("THIS PART DOES NOT GET USED.\n");
         // phew, not a nested structure
@@ -132,10 +132,13 @@ int get_address(struct Tnode *ptr) {
           variable_type = find_id_type(ptr -> Ptr1);*/
         //printf("Trying to access %s which is of type %s...\n", ptr-> Ptr1 -> NAME, variable_type -> name);
         flist = current_struct_type -> fields;
+        printf("In ADDR:\n");
+        printf("Trying to find member %s..\n", ptr -> Ptr2 -> NAME);
         while (flist != NULL) {
           printf("Checking against %s...\n", flist -> name);
           if (strcmp(flist -> name, ptr -> Ptr2 -> NAME) == 0) {
             current_struct_type = flist -> type;
+            printf("Found the member, its index is %d\n", flist -> fieldIndex);
             break;
           }
           flist = flist -> next;
@@ -418,7 +421,7 @@ int code_gen(struct Tnode *ptr) {
 
       // return the value like in ID
 
-      if (ptr -> Ptr2 == NULL) {
+      if (0) {
         // phew, not a nested structure
         // kind of makes our job easy
         // just return the binding
@@ -494,11 +497,15 @@ int code_gen(struct Tnode *ptr) {
         // get the address of the base structure
         ans = get_address(ptr -> Ptr1);
         // check the type of the variable we're accessing
-        variable_type = find_id_type(ptr -> Ptr1);
-        flist = variable_type -> fields;
+        //variable_type = find_id_type(ptr -> Ptr1);
+        flist = current_struct_type -> fields;
+        printf("In GEN:\n");
+        printf("Trying to find member %s..\n", ptr -> Ptr2 -> NAME);
         while (flist != NULL) {
+          printf("Checking against %s...\n", flist -> name);
           if (strcmp(flist -> name, ptr -> Ptr2 -> NAME) == 0) {
-            variable_type = flist -> type;
+            current_struct_type = flist -> type;
+            printf("Found the member, its index is %d\n", flist -> fieldIndex);
             break;
           }
           flist = flist -> next;

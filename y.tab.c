@@ -2135,7 +2135,7 @@ yyreduce:
 
 		// to deal with the case of plain old array access
 
-		if ((yyvsp[-3].tnode_ptr) -> TYPE == VAR_TYPE_BOOL || (yyvsp[-3].tnode_ptr) -> TYPE == VAR_TYPE_INT) {
+		if (1) {
 			// can be referencing an array
  		 //printf("ID given array\n");
  		 //printf("name = %s\n", $1 -> NAME);
@@ -2156,7 +2156,7 @@ yyreduce:
 
 		// to deal with if structures are involved
 
-		(yyval.tnode_ptr) = TreeCreate((yyvsp[-3].tnode_ptr) -> TYPE, NODETYPE_STRUCT_ELEM_ACCESS, -1, (yyvsp[-3].tnode_ptr) -> NAME, current_arg_list, (yyvsp[-3].tnode_ptr), NULL, (yyvsp[-1].tnode_ptr), current_local_symbol_table, FALSE);
+		//$$ = TreeCreate($1 -> TYPE, NODETYPE_STRUCT_ELEM_ACCESS, -1, $1 -> NAME, current_arg_list, $1, NULL, $3, current_local_symbol_table, FALSE);
 	}
 #line 2162 "y.tab.c" /* yacc.c:1646  */
     break;

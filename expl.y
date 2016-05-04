@@ -705,7 +705,7 @@ userDataTypeAccess: userDataTypeAccess '.' ID {
 
 		// to deal with the case of plain old array access
 
-		if ($1 -> TYPE == VAR_TYPE_BOOL || $1 -> TYPE == VAR_TYPE_INT) {
+		if (1) {
 			// can be referencing an array
  		 //printf("ID given array\n");
  		 //printf("name = %s\n", $1 -> NAME);
@@ -726,7 +726,7 @@ userDataTypeAccess: userDataTypeAccess '.' ID {
 
 		// to deal with if structures are involved
 
-		$$ = TreeCreate($1 -> TYPE, NODETYPE_STRUCT_ELEM_ACCESS, -1, $1 -> NAME, current_arg_list, $1, NULL, $3, current_local_symbol_table, FALSE);
+		//$$ = TreeCreate($1 -> TYPE, NODETYPE_STRUCT_ELEM_ACCESS, -1, $1 -> NAME, current_arg_list, $1, NULL, $3, current_local_symbol_table, FALSE);
 	}
 	;
 
