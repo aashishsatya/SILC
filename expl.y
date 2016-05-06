@@ -22,7 +22,7 @@
 	struct Typetable *type_entry;
 }
 
-%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL ENDOFFILE BEGINNING END MAIN RETURN LE GE TYPEDEF ALLOC
+%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL ENDOFFILE BEGINNING END MAIN RETURN LE GE TYPEDEF ALLOC NULL_NODE NEQ
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -39,6 +39,7 @@
 %type <tnode_ptr> LT;
 %type <tnode_ptr> GT;
 %type <tnode_ptr> EQ;
+%type <tnode_ptr> NEQ;
 %type <tnode_ptr> IF;
 %type <tnode_ptr> WHILE;
 %type <tnode_ptr> DO;
@@ -59,12 +60,13 @@
 %type <tnode_ptr> LE;
 %type <tnode_ptr> GE;
 %type <type_entry> type;
+%type <tnode_ptr> NULL_NODE;
 %type <tnode_ptr> dataTypeName;
 %type <tnode_ptr> userDataTypeAccess;
 
 %left PLUS MINUS
 %left MUL DIV
-%nonassoc LT GT EQ LE GE
+%nonassoc LT GT EQ LE GE NEQ
 
 %%
 
@@ -538,6 +540,14 @@ stmt: userDataTypeAccess ASGN expr ';' {
 
 		/*
 
+		| userDataTypeAccess ASGN NULL_NODE ';' {
+			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, $1, $3, NULL, current_local_symbol_table, FALSE);
+		}
+
+		*/
+
+		/*
+
 		|	ID ASGN expr ';'	{
 			//printf("Making ID node for %s\n", $1 -> NAME);
 			$1 -> ArgList = current_arg_list;
@@ -791,6 +801,10 @@ expr: expr PLUS expr	{
 		 	$$ = $1;
 	 }
 
+	 | NULL_NODE {
+		 $$ = $1;
+	 }
+
 	 | ID '(' ArgListFunctionCall ')' {
 		 // the most complex of them all, function call
 		 // just create a new node that will be processed by codegenfunc.c
@@ -836,6 +850,30 @@ expr: expr PLUS expr	{
 	 | expr EQ expr {
 		 $$ = makeOperatorNode(EQ, $1, $3, current_local_symbol_table, current_arg_list);
 	 }
+
+	 | expr NEQ expr {
+		 $$ = makeOperatorNode(NEQ, $1, $3, current_local_symbol_table, current_arg_list);
+	 }
+
+	 /*
+
+	 | NULL_NODE EQ userDataTypeAccess {
+		 $$ = makeOperatorNode(EQ, $1, $3, current_local_symbol_table, current_arg_list);
+	 }
+
+	 | userDataTypeAccess EQ NULL_NODE {
+		 $$ = makeOperatorNode(EQ, $1, $3, current_local_symbol_table, current_arg_list);
+	 }
+
+	 | NULL_NODE NEQ userDataTypeAccess {
+		 $$ = makeOperatorNode(NEQ, $1, $3, current_local_symbol_table, current_arg_list);
+	 }
+
+	 | userDataTypeAccess NEQ NULL_NODE {
+		 $$ = makeOperatorNode(NEQ, $1, $3, current_local_symbol_table, current_arg_list);
+	 }
+
+	 */
 
 	 | expr LE expr {
 		 $$ = makeOperatorNode(LE, $1, $3, current_local_symbol_table, current_arg_list);

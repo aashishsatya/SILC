@@ -4,7 +4,8 @@
 
 int register_to_use = -1;  // this is the next to be allocated
 int next_register;  // this will be the variable used internally in the switch staements
-int label_counter = 0;  // a concatenation of L and this value will be used for labels
+int label_counter = 1;  // a concatenation of L and this value will be used for labels
+// 1 because 0 and 1 were used to initialize heap values earlier (and we do label_counter++ before we use it)
 int no_local_vbls_pushed;
 
 struct Typetable *current_struct_type;
@@ -194,6 +195,11 @@ int get_address(struct Tnode *ptr) {
       }
       else {
         symbol_table_ptr = Glookup(ptr -> NAME);
+        // TODO: this error check could be moved to the parsing phase
+        if (symbol_table_ptr == NULL) {
+          printf("Undeclared variable %s, exiting.\n", ptr -> NAME);
+          exit(0);
+        }
         current_struct_type = symbol_table_ptr -> TYPE;
         if (ptr -> Ptr1 == NULL) {
           // ptr is not the ID for an array
@@ -282,6 +288,12 @@ int code_gen(struct Tnode *ptr) {
       fprintf(fp, "EQ R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
+    case NEQ:
+      lhs = code_gen(ptr -> Ptr1);
+      rhs = code_gen(ptr -> Ptr2);
+      fprintf(fp, "NE R%d, R%d\n", lhs, rhs);
+      deallocate_register();  // free rhs
+      return lhs;
     case GT:
       lhs = code_gen(ptr -> Ptr1);
       rhs = code_gen(ptr -> Ptr2);
@@ -306,6 +318,9 @@ int code_gen(struct Tnode *ptr) {
       fprintf(fp, "GE R%d, R%d\n", lhs, rhs);
       deallocate_register();  // free rhs
       return lhs;
+    case NULL_NODE:
+      // since ptr -> VALUE would be -1 in the case of NULL, that is exactly what we need
+      // hence we can let this fall through
     case NUM:
       // just copy the number to the next available register
       next_register = allocate_register();
@@ -317,7 +332,6 @@ int code_gen(struct Tnode *ptr) {
 
       printf("In ASGN...\n");
 
-      // TODO: this has to be modified for structures
 
       //printf("In ASGN...\n");
       // simple question of a move
@@ -402,10 +416,10 @@ int code_gen(struct Tnode *ptr) {
 
       printf("In ALLOC for %s...\n", ptr -> NAME);
       // get the address of the structure to allocate
+      ans = get_address(ptr -> Ptr1);
       temp = allocate_register();
       // find the next free block
       fprintf(fp, "MOV R%d, 1024  // code for alloc begins here\n", temp);
-      ans = get_address(ptr -> Ptr1);
       fprintf(fp, "MOV [R%d], [R%d]\n", ans, temp);
       lhs = allocate_register();
       // update the heap values
@@ -454,8 +468,6 @@ int code_gen(struct Tnode *ptr) {
             fprintf(fp, "MOV R%d, BP\n", next_register);
             fprintf(fp, "MOV R%d, %d\n", temp, reqd_binding);
             fprintf(fp, "ADD R%d, R%d\n", next_register, temp);
-
-            // TODO: sort this out
 
             // if the argument is called by reference, then [BP + 2] will contain the address of the
             // location where the result is to be stored
@@ -518,6 +530,7 @@ int code_gen(struct Tnode *ptr) {
         fprintf(fp, "ADD R%d, R%d\n", ans, temp);
         fprintf(fp, "MOV R%d, [R%d]\n", ans, ans);
         // ans now has the required value
+        deallocate_register();  // free temp
         return ans;
       }
       return -1;
@@ -731,6 +744,7 @@ int code_gen(struct Tnode *ptr) {
             deallocate_register();
           }
           else {
+            /*
             // if it's pass by reference it'll just be an ID or an array reference
             // check if it's an array reference
             local_sym_table_ptr = Llookup(ptr -> Lentry, arg_to_evaluate -> Ptr2 -> NAME);
@@ -784,6 +798,12 @@ int code_gen(struct Tnode *ptr) {
                 no_of_args_pushed++;
               }
             }
+            */
+            temp = get_address(arg_to_evaluate -> Ptr2); // this '... -> Ptr2' is an expr
+            fprintf(fp, "PUSH R%d\n", temp);
+            no_of_args_pushed++;
+            // free R_temp
+            deallocate_register();
           }
         }
         arg_to_evaluate = arg_to_evaluate -> Ptr1;
@@ -867,6 +887,7 @@ int code_gen(struct Tnode *ptr) {
       return -1;
     case IF:
       // evaluate condition
+      fprintf(fp, "// code for if begins here\n");
       lhs = code_gen(ptr -> Ptr1);
       // if condition is false jump to remaining instructions
       label_counter++;
@@ -877,7 +898,7 @@ int code_gen(struct Tnode *ptr) {
       code_gen(ptr -> Ptr2);
       // print out the label to resume execution otherwise
       //printf("...done.\n");
-      fprintf(fp, "L%d:\n", local_label_counter);
+      fprintf(fp, "L%d:       // code for if ends\n", local_label_counter);
       deallocate_register();  // free lhs
       return -1;
     case WHILE:

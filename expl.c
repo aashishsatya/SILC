@@ -7,6 +7,7 @@
 //int *var[26];
 
 FILE *fp = NULL;  // this file pointer will be used for writing the intermediate code to a file
+extern int line_no;
 
 // this one is to be used just to make a node (and not variables)
 /*struct Tnode* makeLeafNode(int n){
@@ -37,9 +38,10 @@ struct Tnode* makeOperatorNode(int OPERATOR, struct Tnode *l, struct Tnode *r, s
       case GT:
       case LE:
       case GE:
+      case NEQ:
       case EQ:
-        if (l -> TYPE != VAR_TYPE_INT || r -> TYPE != VAR_TYPE_INT) {
-          printf("Incorrect operand type for logical operator, exiting.");
+        if ((l -> TYPE != VAR_TYPE_INT || r -> TYPE != VAR_TYPE_INT) && (l -> NODETYPE != NULL_NODE) && (r -> NODETYPE != NULL_NODE)) {
+          printf("Line %d: Incorrect operand type for logical operator, exiting.", line_no);
           exit(0);
         }
         temp = TreeCreate(VAR_TYPE_BOOL, OPERATOR, -1, NULL, current_arg_list, l, r, NULL, Lentry, FALSE);

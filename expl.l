@@ -41,6 +41,11 @@ NL 	[\n]
 "typedef" {return TYPEDEF;}
 "alloc" {return ALLOC;}
 
+"NULL" {
+	yylval.tnode_ptr = TreeCreate(NULL, NULL_NODE, -1, NULL, NULL, NULL, NULL, NULL, NULL, FALSE);
+	return NULL_NODE;
+}
+
 [a-z][a-zA-Z0-9]* {
 
 	char *variable_name = (char *) malloc (50 * sizeof(yytext));
@@ -65,6 +70,7 @@ NL 	[\n]
 "<=" {return LE;}
 ">=" {return GE;}
 "==" {return EQ;}
+"!=" {return NEQ;}
 [=]  {return ASGN;}
 [();\[\],\{\}\&\.]	{return *yytext;}
 
