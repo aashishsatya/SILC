@@ -11,7 +11,6 @@
 	extern char *yytext;
 	extern int line_no;
 
-  //int *var[26];
 	struct Typetable *variable_type;	// this will store the type of the variable that is being processed
 %}
 
@@ -79,12 +78,6 @@ start: starterCode userDataTypeDecln declarations funcDefnList MainBlock ENDOFFI
 			exit(0);
 		}
 
-		printf("In start...\n");
-
-		//fprintf(fp, "START\n");
-		//code_gen($3);	// generate the intermediate code
-		//fprintf(fp, "HALT\n");
-
 		fclose(fp);
 
 		// deallocate memory used in symbol table
@@ -103,7 +96,6 @@ start: starterCode userDataTypeDecln declarations funcDefnList MainBlock ENDOFFI
 starterCode: {
 	// this code was just meant to initialize TypeTableCreate()
 	if (VAR_TYPE_INT == NULL) {
-		printf("TypeTableCreate called by starter code.\n");
 		TypeTableCreate();
 	}
 }
@@ -127,20 +119,14 @@ dataTypeDecln: TYPEDEF dataTypeName '{' fieldDeclarations '}' {
 
 		int fieldIndex = 1;	// cannot be zero because the zeroth entry is reserved for next free block
 
-		printf("ID'ed data type %s\n", $2 -> NAME);
 		temp_flist = current_flist;
-		if (temp_flist == NULL) {
-			printf("current_flist is NULL.\n");
-		}
 		while (temp_flist != NULL) {
 			// fix self-referential data types
 			if (temp_flist -> type == NULL) {
-				//printf("Type entry corresponding to variable %s was NULL, editing it now...\n", temp_flist -> name);
 				temp_flist -> type = current_ttentry;
 			}
 			temp_flist -> fieldIndex = fieldIndex;
 			fieldIndex++;
-			printf("Stored variable %s of type %s with fieldIndex %d\n", temp_flist -> name, temp_flist -> type -> name, temp_flist -> fieldIndex);
 			temp_flist = temp_flist -> next;
 		}
 		current_flist = NULL;	// because the next time code reaches here it will be a different type definition
@@ -171,10 +157,6 @@ fieldDeclarations: fieldDeclarations field_decln  {
 field_decln: ID user_type_list ';' {
 		// check the ID corresponds to a data type in the type table
 		struct Typetable *tt_entry = Tlookup($1 -> NAME);
-		/*printf("Looked up type %s\n", $1 -> NAME);
-		if (tt_entry == NULL) {
-			printf("Received NULL\n");
-		}*/
 		if (tt_entry == NULL && strcmp($1 -> NAME, currently_defined_type) != 0) {
 			printf("Line %d: undefined data type %s, exiting.\n", line_no + 1, $1 -> NAME);
 		}
@@ -199,15 +181,6 @@ field_decln: ID user_type_list ';' {
 		current_flist = temp_current_flist;
 
 		temp_current_flist = NULL;
-
-		/*temp_flist = current_flist;
-		while (temp_flist != NULL) {
-			if (tt_entry != NULL)
-				printf("Assigning type %s to variable %s...\n", tt_entry -> name, temp_flist -> name);
-			temp_flist -> type = tt_entry;	// if tt_entry is NULL it'll correspond to the fact that we're
-			// dealing with a self-referential data type
-			temp_flist = temp_flist -> next;
-		}*/
 	}
 	;
 
@@ -228,8 +201,6 @@ funcDefnList: funcDefnList funcDefn {code_gen($2);}
 
 funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 
-		printf("Processing function %s...\n", $2 -> NAME);
-
 		// check if the function name has been declared earlier
 
 		// check if the number of arguments and their types are correct
@@ -248,8 +219,6 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 		// parsed can simply set this variable (see below rule) and continue
 
 		while (temp_decln_arglist != NULL && temp_defn_arglist != NULL) {
-			//printf("Stored parameter of name %s\n", temp_decln_arglist -> NAME);
-			//printf("Its argument binding is %d\n", temp_decln_arglist -> ARG_SIM_BINDING);
 			if (strcmp(temp_decln_arglist -> NAME, temp_defn_arglist -> NAME) != 0) {
 				printf("Arguments in declaration and definition of function %s are not the same type, exiting.\n", $2 -> NAME);
 				exit(0);
@@ -283,7 +252,6 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 		// actually generate the function code
 		// name is needed to look up the local symbol table
 		// $8 will have the slist for functions
-		//printf("Creating tree for function definition of %s...\n", $2 -> NAME);
 		$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FUNCTION_DEFINITION, -1, $2 -> NAME, NULL, $8, NULL, NULL, current_local_symbol_table, FALSE);
 
 		no_defined_functions++;
@@ -318,8 +286,6 @@ funcDefn:	type ID '(' ArgList ')' '{' localDeclarations funcBody '}' {
 
 		|  {}	// no arguments?
 		;
-
-// TODO: this grammar will create problems on multiple declarations (e.g. integer a, b;); fix
 
 vbl_declns:	vbl_declns ',' ID {
 		// check if an argument of the same name has already been declared
@@ -364,7 +330,6 @@ vbl_declns:	vbl_declns ',' ID {
 // grammar for the main block (int main() {...})
 MainBlock: type MAIN '(' ')' '{' localDeclarations BEGINNING slist END '}' {
 
-		printf("Processing main function...\n");
 		// add main() to the global symbol table
 		Ginstall("main", variable_type, 0, NULL, FALSE);
 		struct Gsymbol *main_symbol_table_entry = Glookup("main");
@@ -398,11 +363,6 @@ MainBlock: type MAIN '(' ')' '{' localDeclarations BEGINNING slist END '}' {
 		fprintf(fp, "LT R0, R2\n");
 		fprintf(fp, "JZ R0, L1\n");
 		fprintf(fp, "MOV [R1], R3	// heap[i] = i + 8\n");
-
-		/*
-		fprintf(fp, "MOV R5, [R1]\n");
-		fprintf(fp, "OUT R5\n");
-		*/
 
 		fprintf(fp, "ADD R1, R4	// i = i + 8\n");
 		fprintf(fp, "ADD R3, R4\n");
@@ -452,12 +412,10 @@ local_dec: type local_id_list ';' {};
 local_id_list: local_id_list ',' ID {
 		// install this in the LOCAL symbol table for a function
 		Linstall(current_local_symbol_table, $3 -> NAME, variable_type);
-		printf("Installed local variable %s as type %s\n", $3 -> NAME, variable_type -> name);
 	}
 
 	| ID {
 		Linstall(current_local_symbol_table, $1 -> NAME, variable_type);
-		printf("Installed local variable %s as type %s\n", $1 -> NAME, variable_type -> name);
 	}
 	;
 
@@ -491,19 +449,16 @@ type:	ID {
 dec: type id_list ';' {};
 
 id_list:	id_list ',' ID	{
-		printf("Global variable %s installed as %s\n", $3 -> NAME, variable_type -> name);
 		Ginstall($3 -> NAME, variable_type, 1, NULL, FALSE);
 	}
 
 	| id_list ',' ID '[' NUM ']' {
-		printf("Installing array %s\n", $3 -> NAME);
 		$5 -> TYPE = VAR_TYPE_INT;
 		Ginstall($3 -> NAME, variable_type, $5 -> VALUE, NULL, TRUE);
 	}
 
 	|	ID {
 		Ginstall($1 -> NAME, variable_type, 1, NULL, FALSE);
-		printf("Global variable %s installed as %s\n", $1 -> NAME, variable_type -> name);
 	}
 
 	| ID '[' NUM ']' {
@@ -538,104 +493,15 @@ stmt: userDataTypeAccess ASGN expr ';' {
 			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, $1, $3, NULL, current_local_symbol_table, FALSE);
 		}
 
-		/*
-
-		| userDataTypeAccess ASGN NULL_NODE ';' {
-			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, $1, $3, NULL, current_local_symbol_table, FALSE);
-		}
-
-		*/
-
-		/*
-
-		|	ID ASGN expr ';'	{
-			//printf("Making ID node for %s\n", $1 -> NAME);
-			$1 -> ArgList = current_arg_list;
-			$1 -> Lentry = current_local_symbol_table;
-			$1 -> TYPE = find_id_type($1);
-			//printf("id type = %d\n", $1 -> TYPE);
-			//printf("expr type = %d\n", $3 -> TYPE);
-			if ($1 -> TYPE != $3 -> TYPE) {
-				printf("Inconsistent types for assignment at line %d; exiting.\n", line_no + 1);
-				exit(0);
-			}
-			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, $1, $3, NULL, current_local_symbol_table, FALSE);
-		}
-
-		| ID '[' expr ']' ASGN expr ';' {
-			$1 -> ArgList = current_arg_list;
-			$1 -> Lentry = current_local_symbol_table;
-			$1 -> TYPE = find_id_type($1);
-			$1 -> array_or_not = find_array_or_not($1);
-			if (!($1 -> array_or_not)) {
-				printf("Trying to index into a non-array variable %s of type %s; exiting.\n", $1 -> NAME, $1 -> TYPE -> name);
-				exit(0);
-			}
-			// means ID is array alright
-			// now we just have to check if expr is compatible with ID
-			if ($1 -> TYPE != $6 -> TYPE) {
-				printf("Inconsistent types for assignment; exiting.\n");
-				exit(0);
-			}
-			struct Tnode *new_id_node = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, NULL, $3, NULL, NULL, current_local_symbol_table, FALSE);
-			////printf("Making ID array node\n");
-			$$ = TreeCreate(VAR_TYPE_VOID, ASGN, -1, NULL, current_arg_list, new_id_node, $6, NULL, current_local_symbol_table, FALSE);
-		}
-
-		*/
-
 		| ALLOC '(' userDataTypeAccess ')' ';' {
-			printf("ID'ED ALLOC...\n");
 			$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_ALLOC, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 
 		}
 
 		| FREE '(' userDataTypeAccess ')' ';' {
-			printf("ID'ED FREE...\n");
 			$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FREE, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 
 		}
-
-		/*
-
-		| READ '(' ID ')' ';'	{
-			$3 -> ArgList = current_arg_list;
-			$3 -> Lentry = current_local_symbol_table;
-			$3 -> TYPE = find_id_type($3);
-			//printf("id type = %d\n", $3 -> TYPE);
-			if ($3 -> TYPE != VAR_TYPE_INT) {
- 			 printf("READ variable is of incorrect type; exiting.\n");
- 			 exit(0);
- 		  }
-			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
-		}
-
-		| READ '(' ID '[' expr ']' ')' ';'	{
-			$3 -> ArgList = current_arg_list;
-			$3 -> Lentry = current_local_symbol_table;
-			$3 -> TYPE = find_id_type($3);
-			$3 -> array_or_not = find_array_or_not($3);
-			//printf("id type read = %d\n", $3 -> TYPE);
-			// this is READ for arrays
-			// reason why you can't have READ(expr) (similar to WRITE below)
-			// is because READ can only read into VARIABLES (and not expressions).
-			// e.g. any statements of the form read(a + b + c) (which is an expr) is
-			// wrong, but write(a + b + c) works
-
-			// but before all that check the type of variables
-			if ($3 -> TYPE != VAR_TYPE_INT || !$3 -> array_or_not) {
-				printf("Incorrect array type for READ statement; exiting.\n");
-				exit(0);
-			}
-			if ($5 -> TYPE != VAR_TYPE_INT) {
-				printf("Incorrect index type for array; exiting.\n");
-				exit(0);
-			}
-			struct Tnode *new_id_node = TreeCreate(NULL, ID, -1, $3 -> NAME, NULL, $5, NULL, NULL, current_local_symbol_table, FALSE);
-			$$ = TreeCreate(VAR_TYPE_VOID, READ, -1, NULL, current_arg_list, new_id_node, NULL, NULL, current_local_symbol_table, FALSE);
-		}
-
-		*/
 
 		| READ '(' userDataTypeAccess ')' ';' {
 
@@ -658,8 +524,6 @@ stmt: userDataTypeAccess ASGN expr ';' {
  			 printf("WRITE variable was of type %s (should have been integer); exiting.\n", $3 -> TYPE -> name);
  			 exit(0);
  		  }
-			printf("Type of $3 in WRITE is %d\n", $3 -> NODETYPE);
-			printf("(for comparison, ALLOC is %d)\n", NODETYPE_ALLOC);
 			$$ = TreeCreate(VAR_TYPE_VOID, WRITE, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 		}
 
@@ -720,29 +584,20 @@ userDataTypeAccess: userDataTypeAccess '.' ID {
 	| ID '[' expr ']' {
 
 		// to deal with the case of plain old array access
-
-		if (1) {
-			// can be referencing an array
- 		 //printf("ID given array\n");
- 		 //printf("name = %s\n", $1 -> NAME);
- 		 $1 -> ArgList = current_arg_list;
- 		 $1 -> Lentry = current_local_symbol_table;
- 		 $1 -> TYPE = find_id_type($1);
- 		 $1 -> array_or_not = find_array_or_not($1);
- 		 if ($3 -> TYPE != VAR_TYPE_INT) {
- 			 printf("Line %d: incorrect type for array index; exiting.\n", line_no + 1);
- 			 exit(0);
- 		 }
- 		 if (!$1 -> array_or_not) {
- 			 printf("Trying to index into a non-array variable %s; exiting.\n", $1 -> NAME);
- 			 exit(0);
- 		 }
- 		 $$ = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
-		}
-
-		// to deal with if structures are involved
-
-		//$$ = TreeCreate($1 -> TYPE, NODETYPE_STRUCT_ELEM_ACCESS, -1, $1 -> NAME, current_arg_list, $1, NULL, $3, current_local_symbol_table, FALSE);
+		// can be referencing an array
+ 		$1 -> ArgList = current_arg_list;
+ 		$1 -> Lentry = current_local_symbol_table;
+ 		$1 -> TYPE = find_id_type($1);
+ 		$1 -> array_or_not = find_array_or_not($1);
+ 		if ($3 -> TYPE != VAR_TYPE_INT) {
+ 			printf("Line %d: incorrect type for array index; exiting.\n", line_no + 1);
+ 			exit(0);
+ 		}
+ 		if (!$1 -> array_or_not) {
+ 			printf("Trying to index into a non-array variable %s; exiting.\n", $1 -> NAME);
+ 			exit(0);
+ 		}
+ 		$$ = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 	}
 	;
 
@@ -770,38 +625,6 @@ expr: expr PLUS expr	{
 	 | '(' expr ')'		{$$ = TreeCreate($2 -> TYPE, PARENS, -1, NULL, NULL, $2, NULL, NULL, current_local_symbol_table, FALSE);}
 
 	 | NUM			{$1 -> TYPE = VAR_TYPE_INT; $$ = $1;}
-
-	 /*
-
-	 | ID {
-		$1 -> Lentry = current_local_symbol_table;
- 		$1 -> ArgList = current_arg_list;
-		// since it can be assumed that this variable would already exist,
-		// we can look it up and assign its type to it
-		$1 -> TYPE = find_id_type($1);
-    $$ = $1;
-   }
-
-	 | ID '[' expr ']' {
-		 // can be referencing an array
-		 //printf("ID given array\n");
-		 //printf("name = %s\n", $1 -> NAME);
-		 $1 -> ArgList = current_arg_list;
-		 $1 -> Lentry = current_local_symbol_table;
-		 $1 -> TYPE = find_id_type($1);
-		 $1 -> array_or_not = find_array_or_not($1);
-		 if ($3 -> TYPE != VAR_TYPE_INT) {
-			 printf("Line %d: incorrect type for array index; exiting.\n", line_no + 1);
-			 exit(0);
-		 }
-		 if (!$1 -> array_or_not) {
-			 printf("Trying to index into a non-array variable %s; exiting.\n", $1 -> NAME);
-			 exit(0);
-		 }
-		 $$ = TreeCreate($1 -> TYPE, ID, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
-	 }
-
-	 */
 
 	 | userDataTypeAccess {
 		 	$$ = $1;
@@ -842,7 +665,6 @@ expr: expr PLUS expr	{
 		 }
 
 		 $$ = TreeCreate(function_call_lookup -> TYPE, NODETYPE_FUNCTION_CALL, -1, $1 -> NAME, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
-		 //current_arg_list = NULL;
 	 }
 
 	 | expr LT expr {
@@ -860,26 +682,6 @@ expr: expr PLUS expr	{
 	 | expr NEQ expr {
 		 $$ = makeOperatorNode(NEQ, $1, $3, current_local_symbol_table, current_arg_list);
 	 }
-
-	 /*
-
-	 | NULL_NODE EQ userDataTypeAccess {
-		 $$ = makeOperatorNode(EQ, $1, $3, current_local_symbol_table, current_arg_list);
-	 }
-
-	 | userDataTypeAccess EQ NULL_NODE {
-		 $$ = makeOperatorNode(EQ, $1, $3, current_local_symbol_table, current_arg_list);
-	 }
-
-	 | NULL_NODE NEQ userDataTypeAccess {
-		 $$ = makeOperatorNode(NEQ, $1, $3, current_local_symbol_table, current_arg_list);
-	 }
-
-	 | userDataTypeAccess NEQ NULL_NODE {
-		 $$ = makeOperatorNode(NEQ, $1, $3, current_local_symbol_table, current_arg_list);
-	 }
-
-	 */
 
 	 | expr LE expr {
 		 $$ = makeOperatorNode(LE, $1, $3, current_local_symbol_table, current_arg_list);

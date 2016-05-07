@@ -12,7 +12,6 @@ struct Typetable *VAR_TYPE_BOOL = NULL;
 struct Typetable *VAR_TYPE_VOID = NULL;
 
 void TypeTableCreate() {
-  //char *decln_name = (char *) malloc (sizeof(30));
 
   // add "boolean" as a type
 

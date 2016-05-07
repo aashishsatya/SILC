@@ -17,10 +17,7 @@ NL 	[\n]
 {whitespaces} ;
 
 [0-9]+  {
-	//printf("ID'ed NUM, working...\n");
-	//printf("Value of NUM = %d\n", atoi(yytext));
 	yylval.tnode_ptr = TreeCreate(NULL, NUM, atoi(yytext), NULL, NULL, NULL, NULL, NULL, NULL, FALSE);
-	//printf("Created a node for NUM...\n");
 	return NUM;
 }
 
