@@ -22,7 +22,7 @@
 	struct Typetable *type_entry;
 }
 
-%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL ENDOFFILE BEGINNING END MAIN RETURN LE GE TYPEDEF ALLOC NULL_NODE NEQ
+%token PLUS MUL ASGN READ WRITE LT GT EQ IF WHILE DO ENDWHILE ENDIF PARENS THEN ID NUM DIV MINUS DECL ENDDECL ENDOFFILE BEGINNING END MAIN RETURN LE GE TYPEDEF ALLOC NULL_NODE NEQ FREE
 %type <tnode_ptr> expr;
 %type <tnode_ptr> stmt;
 %type <tnode_ptr> NUM;
@@ -587,6 +587,12 @@ stmt: userDataTypeAccess ASGN expr ';' {
 		| ALLOC '(' userDataTypeAccess ')' ';' {
 			printf("ID'ED ALLOC...\n");
 			$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_ALLOC, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
+
+		}
+
+		| FREE '(' userDataTypeAccess ')' ';' {
+			printf("ID'ED FREE...\n");
+			$$ = TreeCreate(VAR_TYPE_VOID, NODETYPE_FREE, -1, NULL, current_arg_list, $3, NULL, NULL, current_local_symbol_table, FALSE);
 
 		}
 

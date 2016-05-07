@@ -425,8 +425,27 @@ int code_gen(struct Tnode *ptr) {
       // update the heap values
       fprintf(fp, "MOV R%d, [R%d]\n", lhs, temp);
       fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
-      fprintf(fp, "MOV [R%d], [R%d]\n", temp, lhs);
+      fprintf(fp, "MOV [R%d], R%d\n", temp, lhs);
       deallocate_register();  // free lhs
+      deallocate_register();  // free temp
+      deallocate_register();  // free ans
+      return -1;
+
+    case NODETYPE_FREE:
+
+      printf("In FREE for %s...\n", ptr -> NAME);
+      // get the address of the structure to deallocate
+      ans = get_address(ptr -> Ptr1);
+      temp = allocate_register();
+      // OK, the idea here is this
+      // 1024 would contain the value of the next free block
+      // put this value in the CURRENT block that we're supposed to deallocate
+      // set the address of the current block as the value in 1024
+      // them step by step:
+      fprintf(fp, "MOV R%d, [R%d]\n", ans, ans);
+      fprintf(fp, "MOV R%d, 1024  // code for free begins here\n", temp);
+      fprintf(fp, "MOV [R%d], [R%d]\n", ans, temp);
+      fprintf(fp, "MOV [R%d], R%d\n", temp, ans);
       deallocate_register();  // free temp
       deallocate_register();  // free ans
       return -1;

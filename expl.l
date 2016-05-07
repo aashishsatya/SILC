@@ -40,6 +40,7 @@ NL 	[\n]
 "return" {return RETURN;}
 "typedef" {return TYPEDEF;}
 "alloc" {return ALLOC;}
+"free" {return FREE;}
 
 "NULL" {
 	yylval.tnode_ptr = TreeCreate(NULL, NULL_NODE, -1, NULL, NULL, NULL, NULL, NULL, NULL, FALSE);

@@ -76,7 +76,8 @@ extern int yydebug;
     TYPEDEF = 286,
     ALLOC = 287,
     NULL_NODE = 288,
-    NEQ = 289
+    NEQ = 289,
+    FREE = 290
   };
 #endif
 /* Tokens.  */
@@ -112,6 +113,7 @@ extern int yydebug;
 #define ALLOC 287
 #define NULL_NODE 288
 #define NEQ 289
+#define FREE 290
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -125,7 +127,7 @@ union YYSTYPE
 	struct Fieldlist *fields_ptr;
 	struct Typetable *type_entry;
 
-#line 129 "y.tab.h" /* yacc.c:1909  */
+#line 131 "y.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
