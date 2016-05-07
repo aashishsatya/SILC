@@ -88,7 +88,6 @@ int get_address(struct Tnode *ptr) {
       // please be careful about the order of evaluation of the || (and its
       // breakability on finding an answer thereof)
       if (local_sym_table_ptr != NULL || function_arg_list != NULL) {
-        //next_register = allocate_register();
         lhs = allocate_register();
         temp = allocate_register();
         fprintf(fp, "MOV R%d, BP\n", lhs);
@@ -100,10 +99,8 @@ int get_address(struct Tnode *ptr) {
         // so if we set R_next_register to be [BP + 2] (in case of call by reference) then both cases should work
         if (function_arg_list != NULL && function_arg_list -> PASS_TYPE == PASS_BY_REFERENCE)
           fprintf(fp, "MOV R%d, [R%d]\n", lhs, lhs);
-        //fprintf(fp, "MOV R%d, R%d\n", lhs, next_register);
         // next_register now contains BP + binding
         deallocate_register();  // free temp
-        //deallocate_register();  // free next_register
       }
       else {
         symbol_table_ptr = Glookup(ptr -> NAME);
@@ -130,8 +127,6 @@ int get_address(struct Tnode *ptr) {
           deallocate_register();  // release temp
           // now we have the proper address to read into stored in rhs
           // move the value in the memory location in rhs
-          //fprintf(fp, "MOV R%d, R%d\n", lhs, rhs);
-          //deallocate_register();  // free rhs
           return lhs;
         }
       }
@@ -521,14 +516,12 @@ int code_gen(struct Tnode *ptr) {
       deallocate_register();  // free lhs
       return -1;
     case WHILE:
-      // ah the most complex of them all
       // while is basically
-      // label1
+      // label1:
       // check condition
       // statements if condition is valid
       // jump back to label1
       // label 2
-      // so let's get on with it
       label_counter++;
       start_of_loop_counter = label_counter;
       fprintf(fp, "L%d:\n", start_of_loop_counter);
